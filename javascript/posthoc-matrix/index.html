@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabel Matriks</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Input Data</h2>
+<textarea id="inputData" rows="10" cols="50" placeholder="Masukkan data di sini..."></textarea>
+<br>
+<button onclick="processData()">Proses Data</button>
+<br>
+<div class="data-perlakuan">
+  <label for="input-perlakuan">Perlakuan</label>
+  <input type="number" name="input-perlakuan" id="input-perlakuan">
+</div>
+
+<div class="data-ulangan">
+  <label for="input-ulangan">Ulangan</label>
+  <input type="number" name="input-ulangan" id="input-ulangan">
+</div>
+
+<div class="data-ktg">
+  <label for="input-ktg">KT Galat</label>
+  <input type="number" name="input-ktg" id="input-ktg">
+</div>
+
+<!-- <h2>Hasil JSON</h2>
+<pre id="jsonOutput"></pre> -->
+
+<h2>BNJ</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Standar Deviasi</th>
+      <th>BNJ Tabel</th>
+      <th>BNJ Hitung</th>
+    </tr>
+    
+  </thead>
+  <tbody>
+    <tr>
+      <td class="nilai-sd"></td>
+      <td class="nilai-bnjt"></td>
+      <td class="nilai-bnjh"></td>
+    </tr>
+  </tbody>
+</table>
+
+<button onclick="hitungBNJ()">Test Ambil</button>
+
+<h2>Tabel Matriks</h2>
+<table id="matrixTable">
+    <thead>
+        <tr>
+            <!-- Header untuk kolom akan diisi di sini -->
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Hasil matriks akan ditampilkan di sini -->
+    </tbody>
+</table>
+
+<script src="script.js"></script>
+
+</body>
+</html>
