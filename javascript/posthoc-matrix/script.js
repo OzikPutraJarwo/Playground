@@ -64,96 +64,119 @@ function processData() {
 		matrixTableBody.appendChild(row);
 	});
 
+	// Ambil elemen tabel
+	const table = document.getElementById('matrixTable');
+	const rows = table.querySelectorAll('tbody tr');
 
-	
+	// Inisialisasi objek untuk menyimpan hasil
+	const results = {};
 
+	// Loop melalui setiap baris (mulai dari indeks 1 untuk mengabaikan header)
+	rows.forEach((row, rowIndex) => {
+		if (rowIndex === 0) return; // Lewati baris pertama (header)
 
+		// Ambil nama perlakuan dari kolom pertama
+		const treatmentName = row.querySelector('th').textContent.trim();
 
-// Ambil elemen tabel
-const table = document.getElementById('matrixTable');
-const rows = table.querySelectorAll('#matrixTable tbody tr');
+		// Inisialisasi array untuk menyimpan kolom yang memiliki kelas .green
+		const greenColumns = [];
 
-// Inisialisasi objek untuk menyimpan hasil
-const results = {};
+		// Loop melalui setiap sel dalam baris
+		const cells = row.querySelectorAll('td');
+		cells.forEach((cell, cellIndex) => {
+			// Jika sel memiliki kelas .green, simpan indeks kolom
+			if (cell.classList.contains('green')) {
+				greenColumns.push(cellIndex + 1); // Tambahkan 1 untuk indeks berbasis 1
+			}
+		});
 
-// Loop melalui setiap baris (mulai dari indeks 1 untuk mengabaikan header)
-rows.forEach((row, rowIndex) => {
-    if (rowIndex === 0) return; // Lewati baris pertama (header)
+		// Simpan hasil ke dalam objek
+		results[treatmentName] = greenColumns.join(',');
+	});
 
-    // Ambil nama perlakuan dari kolom pertama
-    const treatmentName = row.querySelector('th').textContent.trim();
-    
-    // Inisialisasi array untuk menyimpan kolom yang memiliki kelas .green
-    const greenColumns = [];
-    
-    // Loop melalui setiap sel dalam baris
-    const cells = row.querySelectorAll('td');
-    cells.forEach((cell, cellIndex) => {
-        // Jika sel memiliki kelas .green, simpan indeks kolom
-        if (cell.classList.contains('green')) {
-            greenColumns.push(cellIndex + 1); // Tambahkan 1 untuk indeks berbasis 1
-        }
-    });
-    
-    // Simpan hasil ke dalam objek
-    results[treatmentName] = greenColumns.join(',');
-});
+	const labelMap = {};
+	const assigned = {};
+	let currentLabelCode = 'a'.charCodeAt(0);
 
-const labelMap = {};
-const assigned = {};
-let currentLabelCode = 'a'.charCodeAt(0);
+	// Helper untuk cari key yang punya angka tertentu
+	function keysWithNumber(num) {
+		return Object.keys(results).filter(key =>
+			results[key].split(',').includes(String(num))
+		);
+	}
 
-// Helper untuk cari key yang punya angka tertentu
-function keysWithNumber(num) {
-  return Object.keys(results).filter(key =>
-    results[key].split(',').includes(String(num))
-  );
-}
+	for (const key of Object.keys(results)) {
+		const nums = results[key].split(',');
+		const first = nums[0];
 
-for (const key of Object.keys(results)) {
-  const nums = results[key].split(',');
-  const first = nums[0];
+		if (!labelMap[first]) {
+			const label = String.fromCharCode(currentLabelCode++);
+			labelMap[first] = label;
 
-  if (!labelMap[first]) {
-    const label = String.fromCharCode(currentLabelCode++);
-    labelMap[first] = label;
+			const relatedKeys = keysWithNumber(first);
+			for (const rk of relatedKeys) {
+				assigned[rk] = (assigned[rk] || '') + label;
+			}
+		}
+	}
 
-    const relatedKeys = keysWithNumber(first);
-    for (const rk of relatedKeys) {
-      assigned[rk] = (assigned[rk] || '') + label;
-    }
-  }
-}
+	const merged = {};
 
-const merged = {};
+	for (const key in assigned) {
+		merged[key] = {
+			label: assigned[key],
+			value: dataMap[key]
+		};
+	}
 
-for (const key in assigned) {
-  merged[key] = {
-    label: assigned[key],
-    value: dataMap[key]
-  };
-}
+	// Simpan urutan key berdasarkan key dataMap (M0, M1, ..., M6)
+	const dataMapKeyOrder = Object.keys(dataMap);
 
-    const tbody = document.querySelector("#letterTable tbody");
+	// Simpan urutan default merged (misalnya dari input awal)
+	const mergedCustomOrder = Object.keys(merged);
+
+	function renderTable(orderBy = 'dataMapKey') {
+		const tbody = document.querySelector("#letterTable tbody");
 		tbody.innerHTML = "";
 
-    for (const key in merged) {
-      const row = document.createElement("tr");
+		let sortedKeys;
 
-      const tdKey = document.createElement("td");
-      tdKey.textContent = key;
+		if (orderBy === 'merged') {
+			sortedKeys = mergedCustomOrder;
+		} else if (orderBy === 'dataMapKey') {
+			sortedKeys = dataMapKeyOrder.filter(k => merged[k]); // hanya yang ada di merged
+		}
 
-      const tdValue = document.createElement("td");
-      tdValue.textContent = merged[key].value.toFixed(5);
+		sortedKeys.forEach(key => {
+			const row = document.createElement("tr");
 
-      const tdLabel = document.createElement("td");
-      tdLabel.textContent = merged[key].label;
+			const tdKey = document.createElement("td");
+			tdKey.textContent = key;
 
-      row.appendChild(tdKey);
-      row.appendChild(tdValue);
-      row.appendChild(tdLabel);
+			const tdValue = document.createElement("td");
+			tdValue.textContent = merged[key].value.toFixed(5);
 
-      tbody.appendChild(row);
-    }
+			const tdLabel = document.createElement("td");
+			tdLabel.textContent = merged[key].label;
+
+			row.appendChild(tdKey);
+			row.appendChild(tdValue);
+			row.appendChild(tdLabel);
+
+			tbody.appendChild(row);
+		});
+	}
+
+	renderTable('merged');
+
+	document.getElementById('renderbyData').onclick = function () {
+		renderTable('merged');
+	}
+	document.getElementById('renderbyData').onclick = function () {
+		renderTable('dataMapKey');
+	}
+
+	document.getElementById('letter').innerHTML = JSON.stringify(merged);
+	document.getElementById('letter').innerHTML += JSON.stringify(dataMap);
 
 }
