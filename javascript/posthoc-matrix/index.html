@@ -1,88 +1,95 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
+
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tabel Matriks</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-    </style>
-</head>
-<body>
+    <link rel="stylesheet" href="style.css">
 
-<h2>Input Data</h2>
-<textarea id="inputData" rows="10" cols="50" placeholder="Masukkan data di sini..."></textarea>
-<br>
-<button onclick="processData()">Proses Data</button>
-<br>
-<div class="data-perlakuan">
-  <label for="input-perlakuan">Perlakuan</label>
-  <input type="number" name="input-perlakuan" id="input-perlakuan">
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js"></script>
 
-<div class="data-ulangan">
-  <label for="input-ulangan">Ulangan</label>
-  <input type="number" name="input-ulangan" id="input-ulangan">
-</div>
+  </head>
 
-<div class="data-ktg">
-  <label for="input-ktg">KT Galat</label>
-  <input type="number" name="input-ktg" id="input-ktg">
-</div>
+  <body>
 
-<!-- <h2>Hasil JSON</h2>
+    <h2>Input Data</h2>
+    <textarea id="inputData" rows="10" cols="50" placeholder="Masukkan data di sini...">M0	39.80815
+M1	52.47585
+M2	53.005425
+M3	64.3575
+M4	77.41665
+M5	64.400025
+M6	41.08125</textarea>
+    <br>
+    <button onclick="hitungBNJ();processData()">Proses Data</button>
+    <br>
+    <div class="data-perlakuan">
+      <label for="input-perlakuan">Perlakuan</label>
+      <input type="number" name="input-perlakuan" id="input-perlakuan" value="7">
+    </div>
+
+    <div class="data-ulangan">
+      <label for="input-ulangan">Ulangan</label>
+      <input type="number" name="input-ulangan" id="input-ulangan" value="3">
+    </div>
+
+    <div class="data-ktg">
+      <label for="input-ktg">KT Galat</label>
+      <input type="number" name="input-ktg" id="input-ktg" value="47.62">
+    </div>
+
+    <!-- <h2>Hasil JSON</h2>
 <pre id="jsonOutput"></pre> -->
 
-<h2>BNJ</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Standar Deviasi</th>
-      <th>BNJ Tabel</th>
-      <th>BNJ Hitung</th>
-    </tr>
-    
-  </thead>
-  <tbody>
-    <tr>
-      <td class="nilai-sd"></td>
-      <td class="nilai-bnjt"></td>
-      <td class="nilai-bnjh"></td>
-    </tr>
-  </tbody>
-</table>
-
-<button onclick="hitungBNJ()">Test Ambil</button>
-
-<h2>Tabel Matriks</h2>
-<table id="matrixTable">
-    <thead>
+    <h2>BNJ</h2>
+    <table>
+      <thead>
         <tr>
-            <!-- Header untuk kolom akan diisi di sini -->
+          <th>Standar Deviasi</th>
+          <th>BNJ Tabel</th>
+          <th>BNJ Hitung</th>
         </tr>
-    </thead>
-    <tbody>
-        <!-- Hasil matriks akan ditampilkan di sini -->
-    </tbody>
-</table>
 
-<script src="script.js"></script>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="output-sd"></td>
+          <td class="output-bnjt"></td>
+          <td class="output-bnjh"></td>
+        </tr>
+      </tbody>
+    </table>
 
-</body>
+    <!-- <button onclick="hitungBNJ()">Test Ambil</button> -->
+
+    <h2>Tabel Matriks</h2>
+    <table id="matrixTable">
+      <thead>
+        <tr>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+
+    <div id="letter"></div>
+
+    <h2>Notasi</h2>
+    <table id="letterTable">
+      <thead>
+        <tr>
+          <th>Perlakuan</th>
+          <th>Nilai</th>
+          <th>Notasi</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+
+    <script src="script.js"></script>
+
+  </body>
+
 </html>
