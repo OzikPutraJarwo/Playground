@@ -4,10 +4,11 @@ function hitungBNJ() {
 	const inputPerlakuan = document.querySelector('#input-perlakuan').value;
 	const inputUlangan = document.querySelector('#input-ulangan').value;
 	const inputKTG = document.querySelector('#input-ktg').value;
+	const inputSig = 1 - (document.querySelector('#input-sig').value * 0.01);
 
 	const valueDBG = (inputPerlakuan - 1) * (inputUlangan - 1);
 	const valueSD = Math.sqrt(inputKTG / inputUlangan);
-	const valueBNJT = jStat.tukey.inv(0.95, inputPerlakuan, valueDBG);
+	const valueBNJT = jStat.tukey.inv(inputSig, inputPerlakuan, valueDBG);
 	valueBNJH = valueSD * valueBNJT;
 
 	const outputSD = document.querySelector('.output-sd');
@@ -129,23 +130,22 @@ function processData() {
 		};
 	}
 
-	// Simpan urutan key berdasarkan key dataMap (M0, M1, ..., M6)
 	const dataMapKeyOrder = Object.keys(dataMap);
-
-	// Simpan urutan default merged (misalnya dari input awal)
 	const mergedCustomOrder = Object.keys(merged);
 
-	function renderTable(orderBy = 'dataMapKey') {
+	function renderTable(orderBy = 'dataMapKey', reverse = false) {
 		const tbody = document.querySelector("#letterTable tbody");
 		tbody.innerHTML = "";
 
 		let sortedKeys;
 
 		if (orderBy === 'merged') {
-			sortedKeys = mergedCustomOrder;
+			sortedKeys = [...mergedCustomOrder]; // copy supaya reverse tidak permanen
 		} else if (orderBy === 'dataMapKey') {
-			sortedKeys = dataMapKeyOrder.filter(k => merged[k]); // hanya yang ada di merged
+			sortedKeys = dataMapKeyOrder.filter(k => merged[k]);
 		}
+
+		if (reverse) sortedKeys.reverse();
 
 		sortedKeys.forEach(key => {
 			const row = document.createElement("tr");
@@ -167,16 +167,20 @@ function processData() {
 		});
 	}
 
-	renderTable('merged');
+	// Jangan assign variable saat mengisi parameter
+	renderTable('merged', false);
+
+	let isMergedReversed = false;
+	let isDataReversed = false;
+
+	document.getElementById('renderbyMerged').onclick = function () {
+		renderTable('merged', !isMergedReversed);
+		isMergedReversed = !isMergedReversed;
+	};
 
 	document.getElementById('renderbyData').onclick = function () {
-		renderTable('merged');
-	}
-	document.getElementById('renderbyData').onclick = function () {
-		renderTable('dataMapKey');
-	}
-
-	document.getElementById('letter').innerHTML = JSON.stringify(merged);
-	document.getElementById('letter').innerHTML += JSON.stringify(dataMap);
+		renderTable('dataMapKey', isDataReversed);
+		isDataReversed = !isDataReversed;
+	};
 
 }
