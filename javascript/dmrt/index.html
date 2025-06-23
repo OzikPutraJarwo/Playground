@@ -45,7 +45,7 @@
           </svg>
         </a>
         <a href="https://www.kodejarwo.com" class="site-author site-button">
-          <img src="/icon/ozik.webp" alt="Kode Jarwo" width="15" height="15">
+          <!-- <img src="/icon/ozik.webp" alt="Kode Jarwo" width="15" height="15"> -->
         </a>
       </div>
     </header>
@@ -84,23 +84,18 @@ P5   13.26"></textarea>
           <div class="hasil-section" id="hasil">
             <h3>Matriks</h3>
             <table>
-              <thead>
-                <tr>
-                  <th>Standar Deviasi</th>
-                </tr>
-              </thead>
               <tbody>
-                <tr>
+                <tr class="dmrt-sd">
+                  <th>Standar Deviasi</th>
                   <td class="output-sd"></td>
                 </tr>
-              </tbody>
-            </table>
-            <table>
-              <tbody>
-                <tr>
+                <tr class="dmrt-p">
+                  <th>P</th>
+                </tr>
+                <tr class="dmrt-table">
                   <th>Tabel DMRT</th>
                 </tr>
-                <tr>
+                <tr class="dmrt-calc">
                   <th>DMRT Hitung</th>
                 </tr>
               </tbody>
@@ -151,6 +146,7 @@ P5   13.26"></textarea>
 
     </main>
 
+    <script src="./duncan.js"></script>
     <script src="./script.js"></script>
   </body>
 

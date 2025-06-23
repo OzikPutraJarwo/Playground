@@ -1,5 +1,3 @@
-let valueDMRTH;
-
 function hitungDMRT() {
   const inputPerlakuan = document.querySelector('#input-perlakuan').value;
   const inputUlangan = document.querySelector('#input-ulangan').value;
@@ -8,16 +6,23 @@ function hitungDMRT() {
 
   const valueDBG = (inputPerlakuan - 1) * (inputUlangan - 1);
   const valueSD = Math.sqrt(inputKTG / inputUlangan);
-  const valueDMRTT = jStat.studentt.inv(inputSig, valueDBG);
-  valueDMRTH = valueSD * valueDMRTT;
 
   const outputSD = document.querySelector('.output-sd');
-  const outputDMRTT = document.querySelector('.output-dmrtt');
-  const outputDMRTH = document.querySelector('.output-dmrth');
 
   outputSD.innerHTML = valueSD.toFixed(2);
-  // outputDMRTT.innerHTML = valueDMRTT.toFixed(2);
-  // outputDMRTH.innerHTML = valueDMRTH.toFixed(2);
+  outputSD.setAttribute("colspan", inputPerlakuan - 1);
+
+  const elementDMRTP = document.querySelector('.dmrt-p');
+  elementDMRTP.innerHTML = `<th>P</th>`;
+  const elementDMRTT = document.querySelector('.dmrt-table');
+  elementDMRTT.innerHTML = `<th>Tabel DMRT</th>`;
+  const elementDMRTC = document.querySelector('.dmrt-calc');
+  elementDMRTC.innerHTML = `<th>DMRT Hitung</th>`;
+  for (let i = 2; i <= inputPerlakuan; i++) {
+    elementDMRTP.innerHTML += `<td>${i}</td>`;
+    elementDMRTT.innerHTML += `<td>${duncan(valueDBG, i)}</td>`;
+    elementDMRTC.innerHTML += `<td data-p="${i}">${(valueSD * duncan(valueDBG, i)).toFixed(2)}</td>`;
+  }
 }
 
 let dataMap;
@@ -49,9 +54,7 @@ function processData() {
 
     sortedEntries.forEach(([perlakuanB, nilaiB]) => {
       const difference = (nilaiA - nilaiB).toFixed(2);
-      if (difference <= valueDMRTH && difference >= 0) {
-        row.innerHTML += `<td class="green">${difference}</td>`;
-      } else if (difference < 0) {
+      if (difference < 0) {
         row.innerHTML += `<td class="gray">${difference}</td>`;
       } else {
         row.innerHTML += `<td>${difference}</td>`;
@@ -60,6 +63,47 @@ function processData() {
 
     matrixTableBody.appendChild(row);
   });
+
+    const rowtr = document.querySelectorAll("#matrixTable tbody tr");
+  rowtr.forEach((row) => {
+    const cells = row.querySelectorAll("td");
+    let zeroIndex = -1;
+    cells.forEach((cell, idx) => {
+      if (cell.textContent.trim() === "0.00") {
+        zeroIndex = idx;
+      }
+    });
+    if (zeroIndex === -1) return;
+    let p = 2;
+    for (let i = zeroIndex - 1; i >= 0; i--) {
+      const cell = cells[i];
+        cell.setAttribute("data-p", p);
+        p++;
+    }
+  });
+
+  function checkGreen() {
+    const matrixTds = document.querySelectorAll('#matrixTable td');
+
+    matrixTds.forEach(matrixTd => {
+      const rawMatrixValue = matrixTd.textContent.trim();
+      const matrixValue = parseFloat(rawMatrixValue);
+      if (!isNaN(matrixValue) && matrixValue === 0) {
+        matrixTd.classList.add('green');
+        return;
+      }
+      const dataP = matrixTd.getAttribute('data-p');
+      if (!dataP) return;
+      const dmrtTd = document.querySelector(`tr.dmrt-calc td[data-p="${dataP}"]`);
+      if (!dmrtTd) return;
+      const rawDmrtValue = dmrtTd.textContent.trim();
+      const dmrtValue = parseFloat(rawDmrtValue);
+      if (!isNaN(matrixValue) && !isNaN(dmrtValue) && matrixValue <= dmrtValue) {
+        matrixTd.classList.add('green');
+      }
+    });
+  }
+  checkGreen();
 
   const table = document.getElementById('matrixTable');
   const rows = table.querySelectorAll('tbody tr');
