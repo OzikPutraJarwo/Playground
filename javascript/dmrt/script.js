@@ -20,8 +20,8 @@ function hitungDMRT() {
   elementDMRTC.innerHTML = `<th>DMRT Hitung</th>`;
   for (let i = 2; i <= inputPerlakuan; i++) {
     elementDMRTP.innerHTML += `<td>${i}</td>`;
-    elementDMRTT.innerHTML += `<td>${duncan(valueDBG, i)}</td>`;
-    elementDMRTC.innerHTML += `<td data-p="${i}">${(valueSD * duncan(valueDBG, i)).toFixed(2)}</td>`;
+    elementDMRTT.innerHTML += `<td>${jStat.tukey.inv(inputSig, i, valueDBG).toFixed(2)}</td>`;
+    elementDMRTC.innerHTML += `<td data-p="${i}">${(valueSD * jStat.tukey.inv(inputSig, i, valueDBG)).toFixed(2)}</td>`;
   }
 }
 
@@ -240,7 +240,7 @@ span.style.margin = '10px 0';
 span.textContent = 'Bingung? Klik untuk menggunakan data contoh';
 document.querySelector('.item.input button').before(span);
 span.onclick = () => {
-  document.getElementById('input-data').value = `M0 39.80815\nM1 52.47585\nM2 53.005425\nM3 64.3575\nM4 77.41665\nM5 64.400025\nM6 41.08125`;
+  document.getElementById('input-data').value = `M0 39.80\nM1 52.47\nM2 53.00\nM3 64.35\nM4 75.41\nM5 64.40\nM6 41.08`;
   document.getElementById('input-perlakuan').value = 7;
   document.getElementById('input-ulangan').value = 3;
   document.getElementById('input-ktg').value = 47.62;
