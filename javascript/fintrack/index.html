@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="./main.css">
     <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
 
   </head>
 
@@ -54,6 +55,23 @@
     <main>
 
       <div class="main wrap">
+
+        <div id="g_id_onload"
+    data-client_id="YOUR_CLIENT_ID"
+    data-context="signin"
+    data-ux_mode="popup"
+    data-callback="handleCredentialResponse"
+    data-auto_prompt="false">
+</div>
+
+<div class="g_id_signin"
+    data-type="standard"
+    data-shape="rectangular"
+    data-theme="outline"
+    data-text="signin_with"
+    data-size="large">
+</div>
+
 
         <div id="user-info">Not logged in</div>
         <button onclick="handleSignInClick()">Login Google</button>
