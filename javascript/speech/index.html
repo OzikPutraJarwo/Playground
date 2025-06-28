@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Korean Speech Translator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        'primary-dark': '#4A49C7'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .pulse-ring {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.33);
+                opacity: 1;
+            }
+            80%, 100% {
+                transform: scale(2.33);
+                opacity: 0;
+            }
+        }
+        
+        .listening {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            background-size: 400% 400%;
+            animation: gradient 2s ease infinite;
+        }
+        
+        @keyframes gradient {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-white min-h-full">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold mb-2">🇰🇷 ➜ 🇺🇸</h1>
+            <h2 class="text-xl md:text-2xl font-semibold mb-2">Korean Speech Translator</h2>
+            <p class="text-gray-600 dark:text-gray-400">Speak in Korean and get real-time English translation</p>
+            <div class="mt-2">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    🌍 Powered by MyMemory API
+                </span>
+            </div>
+        </div>
+
+        <!-- API Status -->
+        <div class="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 mb-6">
+            <h3 class="text-sm font-semibold mb-2 flex items-center">
+                <span class="mr-2">⚙️</span>
+                Translation Service Status
+            </h3>
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">Using MyMemory Translated.net API</p>
+                    <p class="text-xs text-gray-500">Free quota: 1000 characters/day • No API key required</p>
+                </div>
+                <div>
+                    <button id="testConnection" class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                        Test API
+                    </button>
+                    <span id="connectionStatus" class="ml-2 text-xs"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Controls -->
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 mb-6">
+            <!-- Speech Recognition Option -->
+            <div class="text-center mb-6">
+                <div class="relative inline-block mb-4">
+                    <button id="micButton" 
+                            class="w-20 h-20 bg-primary hover:bg-primary-dark text-white rounded-full flex items-center justify-center text-2xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-primary focus:ring-opacity-50">
+                        <span id="micIcon">🎤</span>
+                    </button>
+                    <div id="pulseRing" class="absolute inset-0 rounded-full bg-primary opacity-75 pulse-ring hidden"></div>
+                </div>
+                
+                <div id="statusText" class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                    Click the microphone to start
+                </div>
+                
+                <div id="micError" class="text-xs text-red-500 hidden mb-2">
+                    🚫 Microphone access not available
+                </div>
+                
+                <div id="browserSupport" class="text-xs text-red-500 hidden">
+                    Speech recognition may not be available in this browser
+                </div>
+            </div>
+
+            <!-- Text Input Alternative -->
+            <div class="border-t border-gray-200 dark:border-gray-600 pt-6">
+                <h3 class="text-lg font-semibold mb-3 text-center">📝 Type Korean Text</h3>
+                <div class="max-w-2xl mx-auto">
+                    <textarea id="koreanInput" 
+                              placeholder="한국어로 입력하세요... (Type in Korean...)"
+                              class="w-full h-24 p-4 text-base border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-50"
+                              rows="3"></textarea>
+                    <div class="flex justify-between items-center mt-3">
+                        <button id="translateButton" 
+                                class="px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            🌐 Translate
+                        </button>
+                        <button id="clearInput" 
+                                class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Translation Results -->
+        <div class="grid md:grid-cols-2 gap-6 mb-6">
+            <!-- Korean Input -->
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-3 flex items-center">
+                    <span class="mr-2">🇰🇷</span>
+                    Korean Text
+                </h3>
+                <div id="koreanText" class="min-h-24 p-4 bg-white dark:bg-gray-700 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-base">
+                    <span class="text-gray-400 italic">Korean text will appear here...</span>
+                </div>
+                <div id="confidence" class="text-xs text-gray-500 mt-2 hidden">
+                    Speech Confidence: <span id="confidenceValue">0%</span>
+                </div>
+            </div>
+
+            <!-- English Translation -->
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-3 flex items-center">
+                    <span class="mr-2">🇺🇸</span>
+                    English Translation
+                </h3>
+                <div id="englishText" class="min-h-24 p-4 bg-white dark:bg-gray-700 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-base">
+                    <span class="text-gray-400 italic">Translation will appear here...</span>
+                </div>
+                <div id="loadingTranslation" class="text-xs text-blue-500 mt-2 hidden flex items-center">
+                    <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500 mr-2"></div>
+                    Translating...
+                </div>
+                <div id="translationError" class="text-xs text-red-500 mt-2 hidden"></div>
+            </div>
+        </div>
+
+        <!-- Translation History -->
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                <span class="flex items-center">
+                    <span class="mr-2">📝</span>
+                    Translation History
+                </span>
+                <button id="clearHistory" class="text-xs px-3 py-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">
+                    Clear
+                </button>
+            </h3>
+            <div id="historyList" class="space-y-3 max-h-64 overflow-y-auto">
+                <div class="text-gray-400 italic text-center py-4">No translations yet</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 text-sm text-gray-500">
+            <p>🌍 Free translation powered by <a href="https://mymemory.translated.net/" target="_blank" class="text-primary hover:underline">MyMemory Translated.net</a></p>
+            <p class="mt-1">World's largest translation memory</p>
+        </div>
+    </div>
+
+    <script>
+        // Dark mode support
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        // Global variables
+        let recognition = null;
+        let isListening = false;
+        let translationHistory = [];
+
+        // DOM elements
+        const micButton = document.getElementById('micButton');
+        const micIcon = document.getElementById('micIcon');
+        const pulseRing = document.getElementById('pulseRing');
+        const statusText = document.getElementById('statusText');
+        const browserSupport = document.getElementById('browserSupport');
+        const koreanText = document.getElementById('koreanText');
+        const englishText = document.getElementById('englishText');
+        const confidence = document.getElementById('confidence');
+        const confidenceValue = document.getElementById('confidenceValue');
+        const loadingTranslation = document.getElementById('loadingTranslation');
+        const translationError = document.getElementById('translationError');
+        const micError = document.getElementById('micError');
+        const koreanInput = document.getElementById('koreanInput');
+        const translateButton = document.getElementById('translateButton');
+        const clearInput = document.getElementById('clearInput');
+        const historyList = document.getElementById('historyList');
+        const clearHistory = document.getElementById('clearHistory');
+        const apiUrl = document.getElementById('apiUrl');
+        const apiKey = document.getElementById('apiKey');
+        const testConnection = document.getElementById('testConnection');
+        const connectionStatus = document.getElementById('connectionStatus');
+
+        // MyMemory API function - Free translation service
+        async function translateWithMyMemory(text, sourceLang = 'ko', targetLang = 'en') {
+            const url = 'https://api.mymemory.translated.net/get';
+            const params = new URLSearchParams({
+                q: text,
+                langpair: `${sourceLang}|${targetLang}`
+            });
+
+            const response = await fetch(`${url}?${params}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.responseStatus === 200) {
+                return data.responseData.translatedText;
+            } else {
+                throw new Error(data.responseDetails || 'Translation failed');
+            }
+        }
+
+        // Test API connection
+        async function testAPIConnection() {
+            connectionStatus.textContent = 'Testing...';
+            connectionStatus.className = 'ml-2 text-xs text-blue-500';
+            
+            try {
+                const result = await translateWithMyMemory('안녕', 'ko', 'en');
+                connectionStatus.textContent = `✅ Connected (Result: ${result})`;
+                connectionStatus.className = 'ml-2 text-xs text-green-500';
+            } catch (error) {
+                connectionStatus.textContent = `❌ Error: ${error.message}`;
+                connectionStatus.className = 'ml-2 text-xs text-red-500';
+            }
+        }
+
+        // Initialize speech recognition
+        function initializeSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                
+                recognition.lang = 'ko-KR';
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.maxAlternatives = 1;
+
+                recognition.onstart = () => {
+                    isListening = true;
+                    updateMicButton();
+                    statusText.textContent = 'Listening... Speak in Korean';
+                };
+
+                recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        const conf = event.results[i][0].confidence ? 
+                                   (event.results[i][0].confidence * 100).toFixed(0) : 'N/A';
+                        
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                            confidence.classList.remove('hidden');
+                            confidenceValue.textContent = conf + '%';
+                            processKoreanText(transcript);
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+
+                    const displayText = finalTranscript || interimTranscript;
+                    if (displayText.trim()) {
+                        koreanText.textContent = displayText;
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    if (event.error === 'not-allowed') {
+                        micError.classList.remove('hidden');
+                        statusText.textContent = 'Please use text input below';
+                        micButton.disabled = true;
+                        micButton.classList.add('opacity-50', 'cursor-not-allowed');
+                    } else {
+                        statusText.textContent = 'Error: ' + event.error;
+                    }
+                    stopListening();
+                };
+
+                recognition.onend = () => {
+                    if (!isListening) {
+                        updateMicButton();
+                        statusText.textContent = 'Click the microphone to start';
+                    } else {
+                        setTimeout(() => {
+                            if (isListening && recognition) {
+                                try {
+                                    recognition.start();
+                                } catch (e) {
+                                    console.log('Could not restart recognition:', e);
+                                    stopListening();
+                                }
+                            }
+                        }, 100);
+                    }
+                };
+
+            } else {
+                browserSupport.classList.remove('hidden');
+                statusText.textContent = 'Speech recognition not supported in this browser';
+                micButton.disabled = true;
+                micButton.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        // Update microphone button appearance
+        function updateMicButton() {
+            if (isListening) {
+                micButton.classList.add('listening');
+                micIcon.textContent = '⏹️';
+                pulseRing.classList.remove('hidden');
+            } else {
+                micButton.classList.remove('listening');
+                micIcon.textContent = '🎤';
+                pulseRing.classList.add('hidden');
+            }
+        }
+
+        // Start listening
+        function startListening() {
+            if (recognition && !isListening) {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.error('Could not start recognition:', e);
+                    statusText.textContent = 'Could not start speech recognition';
+                }
+            }
+        }
+
+        // Stop listening
+        function stopListening() {
+            isListening = false;
+            if (recognition) {
+                try {
+                    recognition.stop();
+                    recognition.abort();
+                } catch (e) {
+                    console.log('Recognition already stopped');
+                }
+            }
+            updateMicButton();
+            statusText.textContent = 'Click the microphone to start';
+        }
+
+        // Process Korean text with MyMemory
+        async function processKoreanText(text) {
+            if (!text.trim()) return;
+
+            // Show loading state
+            loadingTranslation.classList.remove('hidden');
+            translationError.classList.add('hidden');
+            englishText.innerHTML = '<span class="text-gray-400 italic">Translating...</span>';
+
+            try {
+                const translation = await translateWithMyMemory(text, 'ko', 'en');
+                
+                // Update displays
+                englishText.textContent = translation;
+                
+                // Add to history
+                addToHistory(text, translation);
+                
+                // Hide loading state
+                loadingTranslation.classList.add('hidden');
+                
+            } catch (error) {
+                console.error('Translation error:', error);
+                loadingTranslation.classList.add('hidden');
+                translationError.classList.remove('hidden');
+                translationError.textContent = 'Translation failed: ' + error.message;
+                englishText.innerHTML = '<span class="text-red-500">Translation failed</span>';
+            }
+        }
+
+        // Add translation to history
+        function addToHistory(korean, english) {
+            const timestamp = new Date().toLocaleTimeString();
+            translationHistory.unshift({
+                korean,
+                english,
+                timestamp
+            });
+
+            // Keep only last 20 translations
+            if (translationHistory.length > 20) {
+                translationHistory = translationHistory.slice(0, 20);
+            }
+
+            updateHistoryDisplay();
+        }
+
+        // Update history display
+        function updateHistoryDisplay() {
+            if (translationHistory.length === 0) {
+                historyList.innerHTML = '<div class="text-gray-400 italic text-center py-4">No translations yet</div>';
+                return;
+            }
+
+            historyList.innerHTML = translationHistory.map(item => `
+                <div class="bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                    <div class="text-xs text-gray-500 mb-1">${item.timestamp}</div>
+                    <div class="text-sm mb-1"><strong>한국어:</strong> ${item.korean}</div>
+                    <div class="text-sm"><strong>English:</strong> ${item.english}</div>
+                </div>
+            `).join('');
+        }
+
+        // Handle text input translation
+        async function translateTextInput() {
+            const text = koreanInput.value.trim();
+            if (!text) return;
+
+            // Update Korean text display
+            koreanText.textContent = text;
+            
+            // Hide confidence since this is text input
+            confidence.classList.add('hidden');
+            
+            // Process with LibreTranslate
+            await processKoreanText(text);
+        }
+
+        // Event listeners
+        micButton.addEventListener('click', () => {
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        });
+
+        translateButton.addEventListener('click', translateTextInput);
+
+        clearInput.addEventListener('click', () => {
+            koreanInput.value = '';
+            translateButton.disabled = true;
+        });
+
+        // Enable translate button when text is entered
+        koreanInput.addEventListener('input', () => {
+            const hasText = koreanInput.value.trim().length > 0;
+            translateButton.disabled = !hasText;
+        });
+
+        // Allow Enter key to translate (Shift+Enter for new line)
+        koreanInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (koreanInput.value.trim()) {
+                    translateTextInput();
+                }
+            }
+        });
+
+        clearHistory.addEventListener('click', () => {
+            translationHistory = [];
+            updateHistoryDisplay();
+        });
+
+        testConnection.addEventListener('click', testAPIConnection);
+
+        // Initialize the app
+        initializeSpeechRecognition();
+        translateButton.disabled = true;
+        
+        // Test connection on load
+        setTimeout(testAPIConnection, 1000);
+    </script>
+</body>
+</html>
