@@ -43,25 +43,65 @@ function calculate(xValue, yValue) {
   Tdew = (243.04 * Math.log(pw / 0.61094)) / (17.625 - Math.log(pw / 0.61094)); // °C
 
   // Wet Bulb Temperature (Twb)
-  function calcPws(T) {
+  function pws_magnus(T) {
+    // T in °C -> returns kPa
     return 0.61094 * Math.exp((17.625 * T) / (T + 243.04));
   }
-  function calcWs(T) {
-    return 0.622 * calcPws(T) / (p - calcPws(T));
+  function Ws_from_T(T, p_kpa) {
+    const pws = pws_magnus(T);
+    return 0.622 * pws / (p_kpa - pws);
   }
-  function findTwb(T, W) {
-    let Twb = T;  // initial guess
-    for (let i = 0; i < 100; i++) {
-      let WsTwb = calcWs(Twb);
-      let Wcalc = ((2501 - 2.326 * Twb) * WsTwb - 1.006 * (T - Twb)) /
-        (2501 + 1.86 * T - 4.186 * Twb);
-      let err = Wcalc - W;
-      if (Math.abs(err) < 1e-6) break;
-      Twb -= err * 5;  // simple correction step
+  function Wcalc_from_Twb(T, Twb, p_kpa) {
+    // T, Twb in °C, p in kPa
+    const WsTwb = Ws_from_T(Twb, p_kpa);
+    const num = (2501 - 2.326 * Twb) * WsTwb - 1.006 * (T - Twb);
+    const den = 2501 + 1.86 * T - 4.186 * Twb;
+    return num / den; // kg/kg dry air
+  }
+  function dew_point_from_pw(pw_kpa) {
+    // invert Magnus approximate quickly (valid for typical range)
+    // pw_kpa must be > 0
+    return (243.04 * Math.log(pw_kpa / 0.61094)) / (17.625 - Math.log(pw_kpa / 0.61094));
+  }
+  function findTwb_bisection(T, W_given, p_kpa, tol = 1e-6, maxIter = 100) {
+    // compute pw from W
+    const pw = (W_given * p_kpa) / (0.622 + W_given);
+    // dew point as lower bound (safe)
+    let a = dew_point_from_pw(pw);
+    let b = T; // upper bound
+    // ensure f(a) and f(b) have opposite signs
+    let fa = Wcalc_from_Twb(T, a, p_kpa) - W_given;
+    let fb = Wcalc_from_Twb(T, b, p_kpa) - W_given;
+    // if no sign change, expand bounds a bit or fail gracefully
+    if (!(fa * fb <= 0)) {
+      // fallback: try slightly below dew and slightly above T
+      a = Math.min(a, T - 100);
+      b = Math.max(b, T + 5);
+      fa = Wcalc_from_Twb(T, a, p_kpa) - W_given;
+      fb = Wcalc_from_Twb(T, b, p_kpa) - W_given;
+      if (fa * fb > 0) {
+        throw new Error('Bisection sign check failed; check inputs or formula (freezing case?)');
+      }
     }
-    return Twb;
+    let mid = (a + b) / 2;
+    let fmid = Wcalc_from_Twb(T, mid, p_kpa) - W_given;
+    let iter = 0;
+    while ((Math.abs(fmid) > tol) && (iter < maxIter) && ((b - a) / 2 > 1e-7)) {
+      if (fa * fmid <= 0) {
+        b = mid;
+        fb = fmid;
+      } else {
+        a = mid;
+        fa = fmid;
+      }
+      mid = (a + b) / 2;
+      fmid = Wcalc_from_Twb(T, mid, p_kpa) - W_given;
+      iter++;
+    }
+    // return { Twb: mid, iterations: iter, residual: fmid };
+    return mid;
   }
-  Twb = findTwb(T, W); // °C
+  Twb = findTwb_bisection(T, W, p); // °C
 
   // Specific Enthalpy (h)
   h = 1.006 * T + W * (2501 + 1.86 * T); // kg dry air
