@@ -3,17 +3,14 @@ let T, W, pw, pws, phi, Ws, mu, Tdew, Twb, h, v;
 
 const inputs = document.querySelectorAll('#x-input, #y-input');
 inputs.forEach(input => input.addEventListener('input', () => {
-  document.querySelector('.marker').setAttribute('cx', Number(document.getElementById('x-input').value) + 35);
-  document.querySelector('.marker').setAttribute('cy', Number(document.getElementById('y-input').value) + 60);
-
+  // Marker X axis
   const xValue = 45.38709677419355 * Number(document.getElementById('x-input').value) + 715.8064516129032;
   document.querySelector('.marker').setAttribute('cx', xValue);
-
+  // Marker Y axis
   const yValue = -80.15384615384616 * Number(document.getElementById('y-input').value) + 2144;
   document.querySelector('.marker').setAttribute('cy', yValue);
-
+  // Calculate parameters
   calculate(Number(document.getElementById('x-input').value), Number(document.getElementById('y-input').value));
-  
 }));
 
 function calculate(xValue, yValue) {
