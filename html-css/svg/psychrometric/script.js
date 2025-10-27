@@ -1,4 +1,4 @@
-let p = 101.325; // kPa
+let pres = 101.325; // kPa
 let T, W, pw, pws, phi, Ws, mu, Tdew, Twb, h, v;
 
 const inputs = document.querySelectorAll('#x-input, #y-input');
@@ -20,9 +20,9 @@ function calculate(xValue, yValue) {
 
   // Humidity Ratio (W)
   W = yValue / 1000; // kg/kg
-  
+
   // Vapor Pressure (pw)
-  pw = (W * p) / (0.622 + W); // kPa
+  pw = (W * pres) / (0.622 + W); // kPa
 
   // Saturation Vapor Pressure (pws[T])
   pws = 0.61094 * Math.exp((17.625 * T) / (T + 243.04)); // kPa
@@ -31,7 +31,7 @@ function calculate(xValue, yValue) {
   phi = pw / pws; // %
 
   // Saturation Humidity Ratio
-  Ws = 0.622 * pws / (p - pws); // (kg/kgda)
+  Ws = 0.622 * pws / (pres - pws); // (kg/kgda)
 
   // Degree of Saturation (μ)
   mu = W / Ws; // %
@@ -98,13 +98,16 @@ function calculate(xValue, yValue) {
     // return { Twb: mid, iterations: iter, residual: fmid };
     return mid;
   }
-  Twb = findTwb_bisection(T, W, p); // °C
+  Twb = findTwb_bisection(T, W, pres); // °C
 
   // Specific Enthalpy (h)
   h = 1.006 * T + W * (2501 + 1.86 * T); // kg dry air
 
   // Specific Volume (v)
-  v = 0.287042 * (T + 273.15) * (1 + 1.6078 * W) / p; // m^3/kgda
+  v = 0.287042 * (T + 273.15) * (1 + 1.6078 * W) / pres; // m³/kgda
+
+  // Moist Air Density (ρ)
+  p = (1 + W) / v; // kg/m³
 
   // Display results
   document.getElementById('results').innerHTML = `
@@ -119,6 +122,50 @@ function calculate(xValue, yValue) {
     <p>Wet Bulb Temperature (Twb): ${Twb.toFixed(2)} °C</p>
     <p>Specific Enthalpy (h): ${h.toFixed(2)} kJ/kg dry air</p>
     <p>Specific Volume (v): ${v.toFixed(4)} m³/kg dry air</p>
+    <p>Moist Air Density (ρ): ${p.toFixed(4)} kg/m³</p>
   `;
 
+}
+
+const graphOutline = document.querySelector('.graph-outline');
+const marker = document.querySelector('.moving-marker');
+const fixedMarkerGroup = document.getElementById('fixed-marker');
+
+graphOutline.addEventListener('mouseover', () => {
+  graphOutline.addEventListener('mousemove', () => {
+    moveMarker(event);
+    const cx = marker.getAttribute('cx');
+    const cy = marker.getAttribute('cy');
+    const cxValue = (31 * Number(cx) - 22190) / 1407;
+    const cyValue = -0.01246 * Number(cy) + 26.73;
+    calculate(cxValue, cyValue);
+  });
+  graphOutline.addEventListener('click', () => {
+    const cx = marker.getAttribute('cx');
+    const cy = marker.getAttribute('cy');
+    const placedMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    placedMarker.setAttribute('cx', cx);
+    placedMarker.setAttribute('cy', cy);
+    placedMarker.setAttribute('r', 7);
+    placedMarker.setAttribute('fill', 'red');
+    placedMarker.setAttribute('class', 'placed-marker');
+    fixedMarkerGroup.appendChild(placedMarker);
+  })
+});
+
+graphOutline.addEventListener('mouseout', () => {
+  graphOutline.removeEventListener('mousemove', moveMarker);
+});
+
+function moveMarker(event) {
+  const svg = event.target.closest('svg');
+  const svgRect = svg.getBoundingClientRect();
+  const xPercent = (event.clientX - svgRect.left) / svgRect.width * 100;
+  const yPercent = (event.clientY - svgRect.top) / svgRect.height * 100;
+
+  const cx = xPercent / 100 * 2988;
+  const cy = yPercent / 100 * 2273;
+
+  marker.setAttribute('cx', cx);
+  marker.setAttribute('cy', cy);
 }
