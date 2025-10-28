@@ -2,7 +2,7 @@
 
 svg {
   width: 100%;
-  height: 100%;
+  height: auto;
 }
 
 #container {
@@ -19,4 +19,22 @@ svg {
   fill: transparent;
   z-index: 9;
   position: relative;
+}
+
+#fixed-marker circle {
+  cursor: pointer;
+}
+
+.marker-detail {
+  display: none;
+}
+
+.show .marker-detail {
+  display: block;
+}
+
+.detail-marker div, .input div, .results div, .marker-detail div {
+  display: grid;
+  grid-template-columns: 1fr 5px 100px 100px;
+  gap: 1rem;
 }

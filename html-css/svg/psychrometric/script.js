@@ -1,19 +1,20 @@
-let pres = 101.325; // kPa
+let ptot = 101.325; // kPa
 let T, W, pw, pws, phi, Ws, mu, Tdew, Twb, h, v;
 
 const inputs = document.querySelectorAll('#x-input, #y-input');
 inputs.forEach(input => input.addEventListener('input', () => {
+  console.log('input changed');
   // Marker X axis
   const xValue = 45.38709677419355 * Number(document.getElementById('x-input').value) + 715.8064516129032;
-  document.querySelector('.marker').setAttribute('cx', xValue);
+  document.querySelector('.moving-marker').setAttribute('cx', xValue);
   // Marker Y axis
   const yValue = -80.15384615384616 * Number(document.getElementById('y-input').value) + 2144;
-  document.querySelector('.marker').setAttribute('cy', yValue);
+  document.querySelector('.moving-marker').setAttribute('cy', yValue);
   // Calculate parameters
-  calculate(Number(document.getElementById('x-input').value), Number(document.getElementById('y-input').value));
+  calculate(Number(document.getElementById('x-input').value), Number(document.getElementById('y-input').value), '.input');
 }));
 
-function calculate(xValue, yValue) {
+function calculate(xValue, yValue, container) {
 
   // Dry Bulb Temperature (T)
   T = xValue; // °C
@@ -22,7 +23,7 @@ function calculate(xValue, yValue) {
   W = yValue / 1000; // kg/kg
 
   // Vapor Pressure (pw)
-  pw = (W * pres) / (0.622 + W); // kPa
+  pw = (W * ptot) / (0.622 + W); // kPa
 
   // Saturation Vapor Pressure (pws[T])
   pws = 0.61094 * Math.exp((17.625 * T) / (T + 243.04)); // kPa
@@ -31,7 +32,7 @@ function calculate(xValue, yValue) {
   phi = pw / pws; // %
 
   // Saturation Humidity Ratio
-  Ws = 0.622 * pws / (pres - pws); // (kg/kgda)
+  Ws = 0.622 * pws / (ptot - pws); // (kg/kgda)
 
   // Degree of Saturation (μ)
   mu = W / Ws; // %
@@ -98,31 +99,31 @@ function calculate(xValue, yValue) {
     // return { Twb: mid, iterations: iter, residual: fmid };
     return mid;
   }
-  Twb = findTwb_bisection(T, W, pres); // °C
+  Twb = findTwb_bisection(T, W, ptot); // °Cinfomarker
 
   // Specific Enthalpy (h)
   h = 1.006 * T + W * (2501 + 1.86 * T); // kg dry air
 
   // Specific Volume (v)
-  v = 0.287042 * (T + 273.15) * (1 + 1.6078 * W) / pres; // m³/kgda
+  v = 0.287042 * (T + 273.15) * (1 + 1.6078 * W) / ptot; // m³/kgda
 
   // Moist Air Density (ρ)
   p = (1 + W) / v; // kg/m³
 
   // Display results
-  document.getElementById('results').innerHTML = `
-    <p>Dry Bulb Temperature (T): ${T.toFixed(2)} °C</p>
-    <p>Humidity Ratio (W): ${W.toFixed(6)} kg/kg</p>
-    <p>Vapor Pressure (pw): ${pw.toFixed(4)} kPa</p>
-    <p>Saturation Vapor Pressure (pws): ${pws.toFixed(4)} kPa</p>
-    <p>Relative Humidity (ϕ): ${(phi * 100).toFixed(2)} %</p>
-    <p>Saturation Humidity Ratio (Ws): ${Ws.toFixed(6)} kg/kgda</p>
-    <p>Degree of Saturation (μ): ${(mu * 100).toFixed(2)} %</p>
-    <p>Dew Point Temperature (Tdew): ${Tdew.toFixed(2)} °C</p>
-    <p>Wet Bulb Temperature (Twb): ${Twb.toFixed(2)} °C</p>
-    <p>Specific Enthalpy (h): ${h.toFixed(2)} kJ/kg dry air</p>
-    <p>Specific Volume (v): ${v.toFixed(4)} m³/kg dry air</p>
-    <p>Moist Air Density (ρ): ${p.toFixed(4)} kg/m³</p>
+  document.querySelector(container).innerHTML = `
+    <div><span>Dry Bulb Temperature (Tdb)</span><span>:</span><span>${T.toFixed(2)}</span><span>°C</span></div>
+    <div><span>Humidity Ratio (W)</span><span>:</span><span>${W.toFixed(6)}</span><span>kg<sub>w</sub>/kg<sub>da</sub></span></div>
+    <div><span>Vapor Pressure (pw)</span><span>:</span><span>${pw.toFixed(4)}</span><span>kPa</span></div>
+    <div><span>Saturation Vapor Pressure (pws)</span><span>:</span><span>${pws.toFixed(4)}</span><span>kPa</span></div>
+    <div><span>Relative Humidity (ϕ)</span><span>:</span><span>${(phi * 100).toFixed(2)}</span><span>%</span></div>
+    <div><span>Saturation Humidity Ratio (Ws)</span><span>:</span><span>${Ws.toFixed(6)}</span><span>kg/kg</span></div>
+    <div><span>Degree of Saturation (μ)</span><span>:</span><span>${(mu * 100).toFixed(2)}</span><span>%</span></div>
+    <div><span>Dew Point Temperature (Tdew)</span><span>:</span><span>${Tdew.toFixed(2)}</span><span>°C</span></div>
+    <div><span>Wet Bulb Temperature (Twb)</span><span>:</span><span>${Twb.toFixed(2)}</span><span>°C</span></div>
+    <div><span>Specific Enthalpy (h)</span><span>:</span><span>${h.toFixed(2)}</span><span>kJ/kg</span></div>
+    <div><span>Specific Volume (v)</span><span>:</span><span>${v.toFixed(4)}</span><span>m³/kg</span></div>
+    <div><span>Moist Air Density (ρ)</span><span>:</span><span>${p.toFixed(4)}</span><span>kg/m³</span></div>
   `;
 
 }
@@ -130,33 +131,9 @@ function calculate(xValue, yValue) {
 const graphOutline = document.querySelector('.graph-outline');
 const marker = document.querySelector('.moving-marker');
 const fixedMarkerGroup = document.getElementById('fixed-marker');
+const infoMarker = document.querySelector('#info-marker');
 
-graphOutline.addEventListener('mouseover', () => {
-  graphOutline.addEventListener('mousemove', () => {
-    moveMarker(event);
-    const cx = marker.getAttribute('cx');
-    const cy = marker.getAttribute('cy');
-    const cxValue = (31 * Number(cx) - 22190) / 1407;
-    const cyValue = -0.01246 * Number(cy) + 26.73;
-    calculate(cxValue, cyValue);
-  });
-  graphOutline.addEventListener('click', () => {
-    const cx = marker.getAttribute('cx');
-    const cy = marker.getAttribute('cy');
-    const placedMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    placedMarker.setAttribute('cx', cx);
-    placedMarker.setAttribute('cy', cy);
-    placedMarker.setAttribute('r', 7);
-    placedMarker.setAttribute('fill', 'red');
-    placedMarker.setAttribute('class', 'placed-marker');
-    fixedMarkerGroup.appendChild(placedMarker);
-  })
-});
-
-graphOutline.addEventListener('mouseout', () => {
-  graphOutline.removeEventListener('mousemove', moveMarker);
-});
-
+// Fungsi untuk menggerakkan marker
 function moveMarker(event) {
   const svg = event.target.closest('svg');
   const svgRect = svg.getBoundingClientRect();
@@ -168,4 +145,94 @@ function moveMarker(event) {
 
   marker.setAttribute('cx', cx);
   marker.setAttribute('cy', cy);
+
+  const cxValue = (31 * Number(cx) - 22190) / 1407;
+  const cyValue = -0.01246 * Number(cy) + 26.73;
+  calculate(cxValue, cyValue, '.results');
+}
+
+graphOutline.addEventListener('mouseover', () => {
+  graphOutline.addEventListener('mousemove', (event) => {
+    moveMarker(event);
+  });
+});
+
+let number = 1;
+
+graphOutline.addEventListener('click', () => {
+  const cx = marker.getAttribute('cx');
+  const cy = marker.getAttribute('cy');
+
+  const cxValue = (31 * Number(cx) - 22190) / 1407;
+  const cyValue = -0.01246 * Number(cy) + 26.73;
+
+  const placedMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  placedMarker.setAttribute('cx', cx);
+  placedMarker.setAttribute('cy', cy);
+  placedMarker.setAttribute('r', 7);
+  placedMarker.setAttribute('fill', 'red');
+  placedMarker.setAttribute('class', `placed-marker number-${number}`);
+  fixedMarkerGroup.appendChild(placedMarker);
+
+  const item = document.createElement('span');
+  item.classList.add(`marker-item`);
+  item.classList.add(`number-${number}`);
+  item.innerHTML = `Marker ${number}`;
+  infoMarker.appendChild(item);
+  // calculate(cxValue, cyValue, `.marker-item.number-${number} .marker-detail`);
+  number++;
+  showMarkerInfo();
+});
+
+graphOutline.addEventListener('mouseout', () => {
+  graphOutline.removeEventListener('mousemove', moveMarker);
+});
+
+fixedMarkerGroup.addEventListener('mouseover', () => {
+  graphOutline.removeEventListener('mousemove', moveMarker);
+});
+
+function showMarkerInfo() {
+  const markerItems = document.querySelectorAll('.marker-item');
+  const markers = document.querySelectorAll('.placed-marker');
+  const borderMarker = document.querySelector('.border-marker');
+
+  function toggleShow(item, isMarker) {
+    const classList = Array.from(item.classList);
+    const numberClass = classList.find(cls => cls.startsWith('number-'));
+    const markerNumber = numberClass ? numberClass.split('-')[1] : null;
+
+    // remove 'show' from all item/marker
+    markerItems.forEach(i => i.classList.remove('show'));
+    markers.forEach(m => m.classList.remove('show'));
+
+    // show selected item/marker
+    if (isMarker) {
+      item.classList.add('show');
+      const selectedItem = document.querySelector(`.marker-item.number-${markerNumber}`);
+      selectedItem.classList.add('show');
+    } else {
+      item.classList.add('show');
+      const selectedMarker = document.querySelector(`.placed-marker.number-${markerNumber}`);
+      selectedMarker.classList.add('show');
+    }
+
+    // move border-marker to selected marker pos
+    const targetMarker = isMarker ? item : document.querySelector(`.placed-marker.number-${markerNumber}`);
+    const cx = targetMarker.getAttribute("cx");
+    const cy = targetMarker.getAttribute("cy");
+    borderMarker.setAttribute("cx", cx);
+    borderMarker.setAttribute("cy", cy);
+    const cxValue = (31 * Number(cx) - 22190) / 1407;
+    const cyValue = -0.01246 * Number(cy) + 26.73;
+    calculate(cxValue, cyValue, `.detail-marker`);
+  }
+
+  markerItems.forEach(item => {
+    item.onclick = () => toggleShow(item, false);
+  });
+
+  markers.forEach(marker => {
+    marker.onclick = () => toggleShow(marker, true);
+  });
 }
