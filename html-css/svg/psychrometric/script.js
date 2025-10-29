@@ -3,13 +3,12 @@ let T, W, pw, pws, phi, Ws, mu, Tdew, Twb, h, v;
 
 const inputs = document.querySelectorAll('#x-input, #y-input');
 inputs.forEach(input => input.addEventListener('input', () => {
-  console.log('input changed');
   // Marker X axis
   const xValue = 45.38709677419355 * Number(document.getElementById('x-input').value) + 715.8064516129032;
-  document.querySelector('.moving-marker').setAttribute('cx', xValue);
+  document.querySelector('.input-marker').setAttribute('cx', xValue);
   // Marker Y axis
   const yValue = -80.15384615384616 * Number(document.getElementById('y-input').value) + 2144;
-  document.querySelector('.moving-marker').setAttribute('cy', yValue);
+  document.querySelector('.input-marker').setAttribute('cy', yValue);
   // Calculate parameters
   calculate(Number(document.getElementById('x-input').value), Number(document.getElementById('y-input').value), '.input');
 }));
@@ -130,10 +129,10 @@ function calculate(xValue, yValue, container) {
 
 const graphOutline = document.querySelector('.graph-outline');
 const marker = document.querySelector('.moving-marker');
-const fixedMarkerGroup = document.getElementById('fixed-marker');
+const fixedMarkerGroup = document.getElementById('custom-marker');
 const infoMarker = document.querySelector('#info-marker');
 
-// Fungsi untuk menggerakkan marker
+// move marker to cursor position
 function moveMarker(event) {
   const svg = event.target.closest('svg');
   const svgRect = svg.getBoundingClientRect();
@@ -163,14 +162,9 @@ graphOutline.addEventListener('click', () => {
   const cx = marker.getAttribute('cx');
   const cy = marker.getAttribute('cy');
 
-  const cxValue = (31 * Number(cx) - 22190) / 1407;
-  const cyValue = -0.01246 * Number(cy) + 26.73;
-
   const placedMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
   placedMarker.setAttribute('cx', cx);
   placedMarker.setAttribute('cy', cy);
-  placedMarker.setAttribute('r', 7);
-  placedMarker.setAttribute('fill', 'red');
   placedMarker.setAttribute('class', `placed-marker number-${number}`);
   fixedMarkerGroup.appendChild(placedMarker);
 
@@ -179,7 +173,6 @@ graphOutline.addEventListener('click', () => {
   item.classList.add(`number-${number}`);
   item.innerHTML = `Marker ${number}`;
   infoMarker.appendChild(item);
-  // calculate(cxValue, cyValue, `.marker-item.number-${number} .marker-detail`);
   number++;
   showMarkerInfo();
 });
@@ -188,6 +181,7 @@ graphOutline.addEventListener('mouseout', () => {
   graphOutline.removeEventListener('mousemove', moveMarker);
 });
 
+// stop moveMarker when cursor hovered to custom-marker
 fixedMarkerGroup.addEventListener('mouseover', () => {
   graphOutline.removeEventListener('mousemove', moveMarker);
 });
@@ -202,30 +196,42 @@ function showMarkerInfo() {
     const numberClass = classList.find(cls => cls.startsWith('number-'));
     const markerNumber = numberClass ? numberClass.split('-')[1] : null;
 
-    // remove 'show' from all item/marker
+    // Check if the item/marker is already shown
+    const isItemShown = item.classList.contains('show');
+
+    // Remove 'show' from all item/marker
     markerItems.forEach(i => i.classList.remove('show'));
     markers.forEach(m => m.classList.remove('show'));
 
-    // show selected item/marker
-    if (isMarker) {
-      item.classList.add('show');
-      const selectedItem = document.querySelector(`.marker-item.number-${markerNumber}`);
-      selectedItem.classList.add('show');
-    } else {
-      item.classList.add('show');
+    // If already shown, simply remove 'show'
+    if (isItemShown) {
+      document.querySelector('.marker-detail').innerHTML = ``;
       const selectedMarker = document.querySelector(`.placed-marker.number-${markerNumber}`);
-      selectedMarker.classList.add('show');
-    }
+      selectedMarker.classList.remove('show');
+      borderMarker.setAttribute("cx", 0);
+      borderMarker.setAttribute("cy", 0);
+    } else {
+      // Show the selected item/marker
+      item.classList.add('show');
+      if (isMarker) {
+        const selectedItem = document.querySelector(`.marker-item.number-${markerNumber}`);
+        selectedItem.classList.add('show');
+      } else {
+        const selectedMarker = document.querySelector(`.placed-marker.number-${markerNumber}`);
+        selectedMarker.classList.add('show');
+      }
 
-    // move border-marker to selected marker pos
-    const targetMarker = isMarker ? item : document.querySelector(`.placed-marker.number-${markerNumber}`);
-    const cx = targetMarker.getAttribute("cx");
-    const cy = targetMarker.getAttribute("cy");
-    borderMarker.setAttribute("cx", cx);
-    borderMarker.setAttribute("cy", cy);
-    const cxValue = (31 * Number(cx) - 22190) / 1407;
-    const cyValue = -0.01246 * Number(cy) + 26.73;
-    calculate(cxValue, cyValue, `.detail-marker`);
+      // Move border-marker to selected marker position
+      const targetMarker = isMarker ? item : document.querySelector(`.placed-marker.number-${markerNumber}`);
+      const cx = targetMarker.getAttribute("cx");
+      const cy = targetMarker.getAttribute("cy");
+      borderMarker.setAttribute("cx", cx);
+      borderMarker.setAttribute("cy", cy);
+
+      const cxValue = (31 * Number(cx) - 22190) / 1407;
+      const cyValue = -0.01246 * Number(cy) + 26.73;
+      calculate(cxValue, cyValue, `.marker-detail`);
+    }
   }
 
   markerItems.forEach(item => {
@@ -236,3 +242,96 @@ function showMarkerInfo() {
     marker.onclick = () => toggleShow(marker, true);
   });
 }
+
+///////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////
+
+// Data Struktur untuk Definisi Kombinasi yang Diizinkan (Symmetrical)
+// Kunci (key) adalah kode parameter, Nilai (value) adalah daftar kode parameter yang diizinkan berpasangan dengannya.
+// Semua kombinasi dijamin bolak-balik (simetris).
+const connectionList = {
+  'Tdb': ['W', 'pw', 'phi', 'Tdew', 'Twb', 'h', 'v', 'rho', 'mu'],
+  'W': ['Tdb', 'phi', 'Twb', 'h', 'v', 'rho', 'mu'],
+  'pw': ['Tdb', 'phi', 'Twb', 'h', 'v', 'rho', 'mu'],
+  'phi': ['Tdb', 'W', 'pw', 'Twb', 'h', 'v', 'rho', 'mu'],
+  'Tdew': ['Tdb', 'Twb', 'h', 'v', 'rho', 'mu'],
+  'Twb': ['Tdb', 'W', 'pw', 'phi', 'Tdew', 'h', 'v', 'rho', 'mu'],
+  'h': ['Tdb', 'W', 'pw', 'phi', 'Tdew', 'Twb', 'v', 'rho', 'mu'],
+  'v': ['Tdb', 'W', 'pw', 'phi', 'Tdew', 'Twb', 'h', 'mu'],
+  'rho': ['Tdb', 'W', 'pw', 'phi', 'Tdew', 'Twb', 'h', 'mu'],
+  'mu': ['Tdb', 'W', 'pw', 'phi', 'Tdew', 'Twb', 'h', 'v', 'rho']
+};
+
+// Pemetaan untuk nama yang lebih mudah dibaca dan simbol (Unicode/HTML Entity)
+const displayNames = {
+  'Tdb': 'Tdb (Suhu Bola Kering)',
+  'W': 'W (Kelembaban Mutlak)',
+  'pw': 'pw (Tekanan Uap Air)',
+  'phi': '\u03C6 (Kelembaban Relatif)', // Unicode phi
+  'Tdew': 'Tdew (Suhu Titik Embun)',
+  'Twb': 'Twb (Suhu Bola Basah)',
+  'h': 'h (Entalpi)',
+  'v': 'v (Volume Spesifik)',
+  'rho': '\u03C1 (Massa Jenis)', // Unicode rho
+  'mu': '\u03BC (Viskositas)' // Unicode mu
+};
+
+const select1 = document.getElementById('select1');
+const select2 = document.getElementById('select2');
+
+// Fungsi untuk mengisi opsi di Select 1
+function populateSelect1() {
+  // Ambil semua kunci (Tdb, W, pw, dll.)
+  const keys = Object.keys(connectionList);
+
+  keys.forEach(key => {
+    const option = document.createElement('option');
+    option.value = key;
+    option.textContent = displayNames[key];
+    select1.appendChild(option);
+  });
+}
+
+// Fungsi utama untuk memfilter dan mengisi opsi di Select 2
+function filterAndPopulateSelect2(selectedKey) {
+  // 1. Reset Select 2
+  select2.innerHTML = '<option value="" disabled selected>Select second parameter</option>';
+  select2.disabled = true;
+  select2.selectedIndex = 0; // Pastikan kembali ke opsi default
+
+  // Jika Select 1 belum dipilih, keluar dari fungsi
+  if (!selectedKey) return;
+
+  // 2. Dapatkan daftar pasangan yang diizinkan
+  const allowedPartners = connectionList[selectedKey] || [];
+
+  // 3. Aktifkan Select 2
+  select2.disabled = false;
+
+
+  // 4. Isi Select 2 dengan opsi yang diizinkan
+  allowedPartners.forEach(partnerKey => {
+    // Pastikan opsi yang dipilih di Select 1 tidak muncul di Select 2
+    if (partnerKey !== selectedKey) {
+      const option = document.createElement('option');
+      option.value = partnerKey;
+      option.textContent = displayNames[partnerKey];
+      select2.appendChild(option);
+    }
+  });
+}
+
+// --- Event Listeners ---
+
+// Ketika Select 1 berubah, filter Select 2
+select1.addEventListener('change', () => {
+  const selectedKey = select1.value;
+  filterAndPopulateSelect2(selectedKey);
+});
+
+// --- Inisialisasi ---
+document.addEventListener('DOMContentLoaded', () => {
+  populateSelect1();
+  // Panggil filterAndPopulateSelect2 secara eksplisit untuk memastikan Select 2 dinonaktifkan di awal
+  filterAndPopulateSelect2(select1.value);
+});

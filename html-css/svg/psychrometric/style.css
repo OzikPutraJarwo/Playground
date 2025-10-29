@@ -10,7 +10,22 @@ svg {
   grid-template-columns: 1fr 700px;
 }
 
-.example {
+/* Info */
+
+.marker-detail div, .input div, .results div {
+  display: grid;
+  grid-template-columns: 1fr 5px 100px 100px;
+  gap: 1rem;
+}
+
+.marker-item.show {
+  font-weight: bold;
+  color: red;
+}
+
+/* Graph */
+
+.graph {
   width: 100%;
   height: 100%;
 }
@@ -21,20 +36,25 @@ svg {
   position: relative;
 }
 
-#fixed-marker circle {
+.placed-marker, .moving-marker, .input-marker {
+  r: 8;
+  stroke: #00000014;
+  stroke-width: 20;
+  transition: .2s all linear;
+}
+
+.moving-marker {
+  transition: none;
+}
+
+.placed-marker {
+  fill: red;
+}
+
+.placed-marker:hover {
+  stroke: rgba(255, 0, 0, 0.322);
+}
+
+#custom-marker circle {
   cursor: pointer;
-}
-
-.marker-detail {
-  display: none;
-}
-
-.show .marker-detail {
-  display: block;
-}
-
-.detail-marker div, .input div, .results div, .marker-detail div {
-  display: grid;
-  grid-template-columns: 1fr 5px 100px 100px;
-  gap: 1rem;
 }
