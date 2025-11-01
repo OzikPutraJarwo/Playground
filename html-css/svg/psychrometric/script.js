@@ -1,18 +1,6 @@
 let ptot = 101.325; // kPa
 let T, W, pw, pws, phi, Ws, mu, Tdew, Twb, h, v;
 
-// const inputs = document.querySelectorAll('#x-input, #y-input');
-// inputs.forEach(input => input.addEventListener('input', () => {
-//   // Marker X axis
-//   const xValue = 45.38709677419355 * Number(document.getElementById('x-input').value) + 715.8064516129032;
-//   document.querySelector('.input-marker').setAttribute('cx', xValue);
-//   // Marker Y axis
-//   const yValue = -80.15384615384616 * Number(document.getElementById('y-input').value) + 2144;
-//   document.querySelector('.input-marker').setAttribute('cy', yValue);
-//   // Calculate parameters
-//   // calculate(Number(document.getElementById('x-input').value), Number(document.getElementById('y-input').value), '.input');
-// }));
-
 function calculate(xValue, yValue, container) {
 
   // Dry Bulb Temperature (T)
@@ -267,8 +255,8 @@ const connectionList = {
 
 // Pemetaan untuk nama yang lebih mudah dibaca dan simbol (Unicode/HTML Entity)
 const displayNames = {
-  'Tdb': ['Dry Bulb Temperature (Tdb)', '%'],
-  'W': ['Humidity Ratio (W)', 'g/kg'],
+  'Tdb': ['Dry Bulb Temperature (Tdb)', '°C'],
+  'W': ['Humidity Ratio (W)', 'g<sub>w</sub>/kg<sub>da</sub>'],
   'pw': ['Vapor Pressure (pw)', 'kPa'],
   'phi': ['Relative Humidity (ϕ / phi)', '%'],
   'mu': ['Degree of Saturation (μ / mu)', '%'],
@@ -286,12 +274,12 @@ let param1, param2;
 // Fungsi untuk mengisi opsi di Select 1
 function populateSelect1() {
   // Ambil semua kunci (Tdb, W, pw, dll.)
-  const keys = Object.keys(connectionList);
+  const keys = Object.keys(displayNames);
 
   keys.forEach(key => {
     const option = document.createElement('option');
     option.value = key;
-    option.textContent = displayNames[key];
+    option.innerHTML = displayNames[key][0];
     select1.appendChild(option);
   });
 }
@@ -318,7 +306,7 @@ function filterAndPopulateSelect2(selectedKey) {
     if (partnerKey !== selectedKey) {
       const option = document.createElement('option');
       option.value = partnerKey;
-      option.textContent = displayNames[partnerKey];
+      option.innerHTML = displayNames[partnerKey][0];
       select2.appendChild(option);
     }
   });
@@ -348,10 +336,19 @@ function defaultSelect(p1Key, p2Key) {
 
 // --- Event Listeners ---
 
+const param1Unit = document.querySelector('.x-input span'),
+      param2Unit = document.querySelector('.y-input span');
+
 // Ketika Select 1 berubah, filter Select 2
 select1.addEventListener('change', () => {
   const selectedKey = select1.value;
+  param1Unit.innerHTML = displayNames[selectedKey][1];
   filterAndPopulateSelect2(selectedKey);
+});
+
+select2.addEventListener('change', () => {
+  const selectedKey = select2.value;
+  param2Unit.innerHTML = displayNames[selectedKey][1];
 });
 
 // --- Inisialisasi ---
