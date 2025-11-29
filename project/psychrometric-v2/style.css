@@ -1,3 +1,8 @@
+html {
+  font-size: #292929;
+  color: #292929;
+}
+
 /* --- CORE LAYOUT --- */
 body {
   font-family: 'Segoe UI', sans-serif;
@@ -240,15 +245,26 @@ input:focus {
   display: grid;
 }
 
+.detail-row {
+  display: grid;
+  grid-template-columns: 40px 8px 1fr;;
+}
+
 .det-label {
-  color: #90a4ae;
+  display: none;
+}
+
+.det-abbr {
+  font-weight: 500;
 }
 
 .det-val {
-  font-weight: 700;
-  color: #37474f;
-  text-align: right;
+  font-weight: 700
 }
+
+/* .detail-row {
+  grid-template-columns: 180px 8px 1fr;
+} */
 
 /* CHART AREA */
 .chart-section {
@@ -277,10 +293,11 @@ input:focus {
 }
 
 /* SVG & Lines */
-.axis-label {
-  font-size: 10px;
-  fill: #78909c;
-  font-weight: bold;
+.axis-label,
+.label-text {
+  font-size: 11px;
+  fill: #37474f;
+  font-weight: 600;
 }
 
 .grid-line {
@@ -321,14 +338,6 @@ input:focus {
   stroke: #fb8c00;
   stroke-width: 0.8;
   opacity: 0.5;
-}
-
-.label-text {
-  font-size: 9px;
-  font-weight: 700;
-  font-family: sans-serif;
-  cursor: default;
-  pointer-events: none;
 }
 
 .rh-text {
@@ -399,6 +408,7 @@ input:focus {
   pointer-events: none;
   z-index: 100;
   min-width: 240px;
+  font-size: .7rem;
 }
 
 .modal-overlay {
@@ -456,11 +466,11 @@ input[type="color"] {
 /* Smart Labels Styles */
 .smart-label {
   font-size: 10px;
-  font-weight: bold;
   font-family: sans-serif;
   cursor: default;
   pointer-events: none;
   text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff;
+  font-style: italic;
 }
 
 .lbl-rh {
@@ -469,7 +479,6 @@ input[type="color"] {
 
 .lbl-h {
   fill: #7b1fa2;
-  font-style: italic;
 }
 
 .lbl-wb {
@@ -477,10 +486,10 @@ input[type="color"] {
 }
 
 /* Styling Preview Range Box */
-.temp-zone-poly { 
-    fill: rgba(33, 150, 243, 0.2); 
-    stroke: #2196f3; 
-    stroke-width: 2; 
-    stroke-dasharray: 4,2; 
-    pointer-events: none; 
+.temp-zone-poly {
+  fill: rgba(33, 150, 243, 0.2);
+  stroke: #2196f3;
+  stroke-width: 2;
+  stroke-dasharray: 4, 2;
+  pointer-events: none;
 }

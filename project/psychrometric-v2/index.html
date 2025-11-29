@@ -39,42 +39,57 @@
           </div>
 
           <div id="zone-controls">
-    <div class="zone-tabs" style="display:flex; gap:5px; margin-bottom:10px; border-bottom:1px solid #bbdefb; padding-bottom:5px;">
-        <div class="z-tab active" id="tab-manual" onclick="setZoneSubMode('manual')" style="flex:1; padding:4px; font-size:10px; text-align:center; cursor:pointer; border-radius:3px; background:#2196f3; color:white;">Manual (Click)</div>
-        <div class="z-tab" id="tab-range" onclick="setZoneSubMode('range')" style="flex:1; padding:4px; font-size:10px; text-align:center; cursor:pointer; border-radius:3px; background:rgba(255,255,255,0.5); color:#1565c0;">Range (Sliders)</div>
-    </div>
+            <div class="zone-tabs"
+              style="display:flex; gap:5px; margin-bottom:10px; border-bottom:1px solid #bbdefb; padding-bottom:5px;">
+              <div class="z-tab active" id="tab-manual" onclick="setZoneSubMode('manual')"
+                style="flex:1; padding:4px; font-size:10px; text-align:center; cursor:pointer; border-radius:3px; background:#2196f3; color:white;">
+                Manual (Click)</div>
+              <div class="z-tab" id="tab-range" onclick="setZoneSubMode('range')"
+                style="flex:1; padding:4px; font-size:10px; text-align:center; cursor:pointer; border-radius:3px; background:rgba(255,255,255,0.5); color:#1565c0;">
+                Range (Sliders)</div>
+            </div>
 
-    <div id="zone-manual-ui">
-        <div style="font-size:10px; margin-bottom:5px; font-weight:bold; color:#0277bd; display:flex; justify-content:space-between;">
-            <span>DRAWING...</span>
-            <span id="zonePtCount">0 pts</span>
-        </div>
-        <button class="tool-btn full-width" onclick="openManualModal('zone')" style="margin-bottom:5px;">⌨ Add Vertex Value</button>
-    </div>
+            <div id="zone-manual-ui">
+              <div
+                style="font-size:10px; margin-bottom:5px; font-weight:bold; color:#0277bd; display:flex; justify-content:space-between;">
+                <span>DRAWING...</span>
+                <span id="zonePtCount">0 pts</span>
+              </div>
+              <button class="tool-btn full-width" onclick="openManualModal('zone')" style="margin-bottom:5px;">⌨ Add
+                Vertex Value</button>
+            </div>
 
-    <div id="zone-range-ui" style="display:none;">
-        <label>Dry Bulb Range (°C)</label>
-        <div class="range-row" style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
-            <input type="number" class="range-val" id="rangeTmin" value="20" oninput="updateRangeZone()" style="width:35px; text-align:center; font-size:10px;">
-            <input type="range" class="range-slider" id="sliderTmin" min="0" max="60" value="20" oninput="syncRange('Tmin')" style="flex:1; height:4px;">
-            <input type="range" class="range-slider" id="sliderTmax" min="0" max="60" value="30" oninput="syncRange('Tmax')" style="flex:1; height:4px;">
-            <input type="number" class="range-val" id="rangeTmax" value="30" oninput="updateRangeZone()" style="width:35px; text-align:center; font-size:10px;">
-        </div>
-        
-        <label>Rel. Humidity Range (%)</label>
-        <div class="range-row" style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
-            <input type="number" class="range-val" id="rangeRHmin" value="30" oninput="updateRangeZone()" style="width:35px; text-align:center; font-size:10px;">
-            <input type="range" class="range-slider" id="sliderRHmin" min="0" max="100" value="30" oninput="syncRange('RHmin')" style="flex:1; height:4px;">
-            <input type="range" class="range-slider" id="sliderRHmax" min="0" max="100" value="70" oninput="syncRange('RHmax')" style="flex:1; height:4px;">
-            <input type="number" class="range-val" id="rangeRHmax" value="70" oninput="updateRangeZone()" style="width:35px; text-align:center; font-size:10px;">
-        </div>
-    </div>
+            <div id="zone-range-ui" style="display:none;">
+              <label>Dry Bulb Range (°C)</label>
+              <div class="range-row" style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
+                <input type="number" class="range-val" id="rangeTmin" value="20" oninput="updateRangeZone()"
+                  style="width:35px; text-align:center; font-size:10px;">
+                <input type="range" class="range-slider" id="sliderTmin" min="0" max="60" value="20"
+                  oninput="syncRange('Tmin')" style="flex:1; height:4px;">
+                <input type="range" class="range-slider" id="sliderTmax" min="0" max="60" value="30"
+                  oninput="syncRange('Tmax')" style="flex:1; height:4px;">
+                <input type="number" class="range-val" id="rangeTmax" value="30" oninput="updateRangeZone()"
+                  style="width:35px; text-align:center; font-size:10px;">
+              </div>
 
-    <div style="margin-top:10px; display:flex; gap:5px;">
-        <button class="tool-btn btn-primary" style="flex:1" onclick="finishZone()">Finish Zone</button>
-        <button class="tool-btn btn-danger" style="flex:1" onclick="cancelZone()">Cancel</button>
-    </div>
-</div>
+              <label>Rel. Humidity Range (%)</label>
+              <div class="range-row" style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
+                <input type="number" class="range-val" id="rangeRHmin" value="30" oninput="updateRangeZone()"
+                  style="width:35px; text-align:center; font-size:10px;">
+                <input type="range" class="range-slider" id="sliderRHmin" min="0" max="100" value="30"
+                  oninput="syncRange('RHmin')" style="flex:1; height:4px;">
+                <input type="range" class="range-slider" id="sliderRHmax" min="0" max="100" value="70"
+                  oninput="syncRange('RHmax')" style="flex:1; height:4px;">
+                <input type="number" class="range-val" id="rangeRHmax" value="70" oninput="updateRangeZone()"
+                  style="width:35px; text-align:center; font-size:10px;">
+              </div>
+            </div>
+
+            <div style="margin-top:10px; display:flex; gap:5px;">
+              <button class="tool-btn btn-primary" style="flex:1" onclick="finishZone()">Finish Zone</button>
+              <button class="tool-btn btn-danger" style="flex:1" onclick="cancelZone()">Cancel</button>
+            </div>
+          </div>
 
           <div class="section-title">MARKED POINTS <span class="count-badge" id="count-points">0</span></div>
           <div id="list-points"></div>
@@ -201,6 +216,28 @@
           <button class="tool-btn" onclick="closeModal('zoneModal')">Cancel</button>
           <button class="tool-btn btn-primary" onclick="saveZoneSettings()">Save Changes</button>
         </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="editModal">
+      <div class="modal-box">
+        <div style="font-weight:bold; margin-bottom:10px;">
+          <span id="editModalTitle">Edit Item</span>
+          <span onclick="closeModal('editModal')" style="float:right;cursor:pointer">✕</span>
+        </div>
+
+        <input type="hidden" id="editId">
+        <input type="hidden" id="editType">
+
+        <label>Name</label>
+        <input type="text" id="editName" style="margin-bottom:10px;">
+
+        <div id="colorContainer">
+          <label>Color</label>
+          <input type="color" id="editColor" style="margin-bottom:15px; width:100%; height:30px;">
+        </div>
+
+        <button class="tool-btn btn-primary full-width" onclick="saveSettings()">Save Changes</button>
       </div>
     </div>
 
