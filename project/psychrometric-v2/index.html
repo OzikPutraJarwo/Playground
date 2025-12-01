@@ -60,28 +60,39 @@
             </div>
 
             <div id="zone-range-ui" style="display:none;">
-              <label>Dry Bulb Range (°C)</label>
-              <div class="range-row" style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
+
+              <label>Range 1: Dry Bulb (°C)</label>
+              <div class="range-row" style="display:flex; align-items:center; gap:5px; margin-bottom:10px;">
                 <input type="number" class="range-val" id="rangeTmin" value="20" oninput="updateRangeZone()"
-                  style="width:35px; text-align:center; font-size:10px;">
+                  style="width:40px; text-align:center; font-size:10px;">
                 <input type="range" class="range-slider" id="sliderTmin" min="0" max="60" value="20"
                   oninput="syncRange('Tmin')" style="flex:1; height:4px;">
                 <input type="range" class="range-slider" id="sliderTmax" min="0" max="60" value="30"
                   oninput="syncRange('Tmax')" style="flex:1; height:4px;">
                 <input type="number" class="range-val" id="rangeTmax" value="30" oninput="updateRangeZone()"
-                  style="width:35px; text-align:center; font-size:10px;">
+                  style="width:40px; text-align:center; font-size:10px;">
               </div>
 
-              <label>Rel. Humidity Range (%)</label>
+              <div style="display:flex; justify-content:space-between; align-items:end; margin-bottom:3px;">
+                <label>Range 2 Parameter:</label>
+                <select id="rangeParamType" onchange="setupRangeDefaults()"
+                  style="width:110px; padding:2px; font-size:10px;">
+                  <option value="RH">Rel. Humidity (%)</option>
+                  <option value="Twb">Wet Bulb (°C)</option>
+                  <option value="h">Enthalpy (kJ/kg)</option>
+                  <option value="v">Spec. Volume (m³/kg)</option>
+                </select>
+              </div>
+
               <div class="range-row" style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
-                <input type="number" class="range-val" id="rangeRHmin" value="30" oninput="updateRangeZone()"
-                  style="width:35px; text-align:center; font-size:10px;">
-                <input type="range" class="range-slider" id="sliderRHmin" min="0" max="100" value="30"
-                  oninput="syncRange('RHmin')" style="flex:1; height:4px;">
-                <input type="range" class="range-slider" id="sliderRHmax" min="0" max="100" value="70"
-                  oninput="syncRange('RHmax')" style="flex:1; height:4px;">
-                <input type="number" class="range-val" id="rangeRHmax" value="70" oninput="updateRangeZone()"
-                  style="width:35px; text-align:center; font-size:10px;">
+                <input type="number" class="range-val" id="rangeP2min" step="0.1" oninput="updateRangeZone()"
+                  style="width:40px; text-align:center; font-size:10px;">
+                <input type="range" class="range-slider" id="sliderP2min" oninput="syncRange('P2min')"
+                  style="flex:1; height:4px;">
+                <input type="range" class="range-slider" id="sliderP2max" oninput="syncRange('P2max')"
+                  style="flex:1; height:4px;">
+                <input type="number" class="range-val" id="rangeP2max" step="0.1" oninput="updateRangeZone()"
+                  style="width:40px; text-align:center; font-size:10px;">
               </div>
             </div>
 

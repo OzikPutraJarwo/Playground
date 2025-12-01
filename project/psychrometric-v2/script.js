@@ -1,6 +1,7 @@
 // ==========================================
 // 1. STATE & MATH ENGINE (FINAL FIX)
 // ==========================================
+
 const State = {
   mode: 'view',
   points: [],
@@ -166,31 +167,56 @@ function calculateAllProperties(t, w, Patm) {
 // ==========================================
 // 2. UI HANDLERS
 // ==========================================
+
+// Konfigurasi batas slider untuk tiap parameter
+const RangeConfigs = {
+  'RH': { min: 0, max: 100, step: 1, defMin: 30, defMax: 70 },
+  'Twb': { min: -10, max: 50, step: 0.5, defMin: 15, defMax: 25 },
+  'h': { min: 0, max: 150, step: 1, defMin: 40, defMax: 80 },
+  'v': { min: 0.75, max: 1.05, step: 0.01, defMin: 0.80, defMax: 0.90 }
+};
+
+function setupRangeDefaults() {
+  const type = document.getElementById('rangeParamType').value;
+  const cfg = RangeConfigs[type];
+
+  // Update atribut slider input HTML
+  ['min', 'max'].forEach(suffix => {
+    const elSlider = document.getElementById('sliderP2' + suffix);
+    const elInput = document.getElementById('rangeP2' + suffix);
+
+    elSlider.min = cfg.min; elSlider.max = cfg.max; elSlider.step = cfg.step;
+    elInput.step = cfg.step;
+
+    // Set default values saat ganti tipe
+    if (suffix === 'min') { elSlider.value = cfg.defMin; elInput.value = cfg.defMin; }
+    else { elSlider.value = cfg.defMax; elInput.value = cfg.defMax; }
+  });
+
+  updateRangeZone();
+}
+
+// Panggil ini sekali saat init atau saat masuk mode range
+// (Tambahkan panggilan ini di dalam setZoneSubMode)
+
 // Mengatur Sub-Mode (Manual vs Range)
 function setZoneSubMode(subMode) {
   State.zoneSubMode = subMode;
-
-  // Update Style Tab
   document.querySelectorAll('.z-tab').forEach(t => {
-    t.style.background = 'rgba(255,255,255,0.5)';
-    t.style.color = '#1565c0';
-    t.classList.remove('active');
+    t.style.background = 'rgba(255,255,255,0.5)'; t.style.color = '#1565c0'; t.classList.remove('active');
   });
-  const activeTab = document.getElementById('tab-' + subMode);
-  activeTab.style.background = '#2196f3';
-  activeTab.style.color = 'white';
-  activeTab.classList.add('active');
+  document.getElementById('tab-' + subMode).style.background = '#2196f3';
+  document.getElementById('tab-' + subMode).style.color = 'white';
+  document.getElementById('tab-' + subMode).classList.add('active');
 
-  // Show/Hide UI yang sesuai
   document.getElementById('zone-manual-ui').style.display = (subMode === 'manual') ? 'block' : 'none';
   document.getElementById('zone-range-ui').style.display = (subMode === 'range') ? 'block' : 'none';
 
-  // Reset data mode seberang agar tidak tumpang tindih
   if (subMode === 'range') {
-    State.tempZone = []; // Reset manual points
-    updateRangeZone();   // Trigger calc range
+    State.tempZone = [];
+    setupRangeDefaults(); // <--- TAMBAHAN: Reset slider saat masuk mode range
   } else {
-    State.rangePreview = []; // Reset range preview
+    State.rangePreview = [];
     drawChart();
   }
 }
@@ -204,51 +230,64 @@ function syncRange(id) {
 // Menghitung 4 Titik Sudut berdasarkan Range
 // Menghitung Polygon Zona dengan Sisi Melengkung (RH Curve)
 function updateRangeZone() {
-  // 1. Sync input values (sama seperti sebelumnya)
-  ['Tmin', 'Tmax', 'RHmin', 'RHmax'].forEach(k => {
+  // 1. Sync Inputs Tdb
+  ['Tmin', 'Tmax'].forEach(k => {
+    const val = parseFloat(document.getElementById('range' + k).value);
+    document.getElementById('slider' + k).value = val;
+  });
+
+  // 2. Sync Inputs Parameter 2
+  ['P2min', 'P2max'].forEach(k => {
     const val = parseFloat(document.getElementById('range' + k).value);
     document.getElementById('slider' + k).value = val;
   });
 
   const tMin = parseFloat(document.getElementById('rangeTmin').value);
   const tMax = parseFloat(document.getElementById('rangeTmax').value);
-  const rhMin = parseFloat(document.getElementById('rangeRHmin').value);
-  const rhMax = parseFloat(document.getElementById('rangeRHmax').value);
+
+  const pType = document.getElementById('rangeParamType').value;
+  const pMin = parseFloat(document.getElementById('rangeP2min').value);
+  const pMax = parseFloat(document.getElementById('rangeP2max').value);
   const Patm = parseFloat(document.getElementById('pressure').value);
 
-  // Validasi
-  if (tMin >= tMax || rhMin >= rhMax) {
-    State.rangePreview = [];
-    drawChart();
-    return;
-  }
+  if (tMin >= tMax || pMin >= pMax) { State.rangePreview = []; drawChart(); return; }
 
-  // --- LOGIKA BARU: Generate Titik Mengikuti Kurva ---
   const polyPoints = [];
-  const step = 0.5; // Resolusi lengkungan (semakin kecil semakin halus)
+  const step = 0.5;
 
-  // A. Garis Bawah (RH Min): Dari Kiri (Tmin) ke Kanan (Tmax)
+  // Helper untuk membatasi W agar tidak tembus Saturation Line
+  const getClampedW = (t, type, val) => {
+    const res = Psychro.solveRobust('Tdb', t, type, val, Patm);
+    if (isNaN(res.w)) return null;
+
+    // Hitung W max pada RH 100% di suhu ini
+    const Pws = Psychro.getSatVapPres(t);
+    const Wmax = Psychro.getWFromPw(Pws, Patm);
+
+    // Jika hasil hitungan melebihi batas jenuh, paksa ke batas jenuh
+    if (res.w > Wmax) res.w = Wmax;
+
+    return res.w;
+  };
+
+  // A. Garis Bawah (Param Min)
   for (let t = tMin; t <= tMax; t += step) {
-    const Pws = Psychro.getSatVapPres(t);
-    const w = Psychro.getWFromPw(Pws * (rhMin / 100), Patm);
-    polyPoints.push({ t: t, w: w });
+    const w = getClampedW(t, pType, pMin);
+    if (w !== null) polyPoints.push({ t: t, w: w });
   }
-  // Pastikan titik sudut Kanan-Bawah masuk presisi
-  const pBR = Psychro.solveRobust('Tdb', tMax, 'RH', rhMin, Patm);
-  polyPoints.push(pBR);
+  // Sudut Kanan Bawah
+  const wBR = getClampedW(tMax, pType, pMin);
+  if (wBR !== null) polyPoints.push({ t: tMax, w: wBR });
 
-  // B. Garis Atas (RH Max): Dari Kanan (Tmax) kembali ke Kiri (Tmin)
-  // Loop mundur agar urutan titik polygon nyambung (CCW/CW)
+  // B. Garis Atas (Param Max) - Balik Arah
   for (let t = tMax; t >= tMin; t -= step) {
-    const Pws = Psychro.getSatVapPres(t);
-    const w = Psychro.getWFromPw(Pws * (rhMax / 100), Patm);
-    polyPoints.push({ t: t, w: w });
+    const w = getClampedW(t, pType, pMax);
+    if (w !== null) polyPoints.push({ t: t, w: w });
   }
-  // Pastikan titik sudut Kiri-Atas masuk presisi
-  const pTL = Psychro.solveRobust('Tdb', tMin, 'RH', rhMax, Patm);
-  polyPoints.push(pTL);
+  // Sudut Kiri Atas
+  const wTL = getClampedW(tMin, pType, pMax);
+  if (wTL !== null) polyPoints.push({ t: tMin, w: wTL });
 
-  // Simpan hasil ke preview
   State.rangePreview = polyPoints;
   drawChart();
 }
@@ -283,6 +322,7 @@ function openManualModal(target) {
   document.getElementById('modalTitle').innerText = (target === 'point') ? "Add Manual Point" : "Add Zone Vertex";
   document.getElementById('manualModal').style.display = "flex";
 }
+
 function closeModal(id) { document.getElementById(id).style.display = "none"; }
 
 function submitManualInput() {
@@ -312,14 +352,14 @@ function submitManualInput() {
 
 // --- LIST & CRUD ---
 function updateLists() {
-    // 1. RENDER POINTS
-    const pl = document.getElementById("list-points");
-    document.getElementById("count-points").innerText = State.points.length;
-    
-    pl.innerHTML = State.points.map((p,i) => `
-        <div class="list-item ${p.id===State.selectedPointId?'active':''}" onclick="selectPoint(${p.id})">
+  // 1. RENDER POINTS
+  const pl = document.getElementById("list-points");
+  document.getElementById("count-points").innerText = State.points.length;
+
+  pl.innerHTML = State.points.map((p, i) => `
+        <div class="list-item ${p.id === State.selectedPointId ? 'active' : ''}" onclick="selectPoint(${p.id})">
             <div class="item-header">
-                <div class="id-circle">${i+1}</div>
+                <div class="id-circle">${i + 1}</div>
                 <div class="item-name">${p.name}</div>
                 <div class="item-actions">
                     <button class="icon-btn" onclick="openEditModal('point', ${p.id})">⚙️</button>
@@ -329,14 +369,14 @@ function updateLists() {
             <div class="item-details">${generateHTMLGrid(p.data)}</div>
         </div>`).join("") || '<div style="font-size:10px;text-align:center;color:#999;padding:10px">No points</div>';
 
-    // 2. RENDER ZONES (Update onclick ke openEditModal)
-    const zl = document.getElementById("list-zones");
-    document.getElementById("count-zones").innerText = State.zones.length;
-    
-    zl.innerHTML = State.zones.map((z,i) => `
-        <div class="list-item ${z.id===State.selectedZoneId?'active':''}" onclick="selectZone(${z.id})" style="border-left:4px solid ${z.color}">
+  // 2. RENDER ZONES (Update onclick ke openEditModal)
+  const zl = document.getElementById("list-zones");
+  document.getElementById("count-zones").innerText = State.zones.length;
+
+  zl.innerHTML = State.zones.map((z, i) => `
+        <div class="list-item ${z.id === State.selectedZoneId ? 'active' : ''}" onclick="selectZone(${z.id})" style="border-left:4px solid ${z.color}">
             <div class="item-header">
-                <div class="id-circle" style="background:${z.color}">${i+1}</div>
+                <div class="id-circle" style="background:${z.color}">${i + 1}</div>
                 <div class="item-name">${z.name}</div>
                 <div class="item-actions">
                     <button class="icon-btn" onclick="openEditModal('zone', ${z.id})">⚙️</button>
@@ -347,18 +387,18 @@ function updateLists() {
 }
 
 function addPoint(t, w) {
-    const Patm = parseFloat(document.getElementById('pressure').value);
-    const data = calculateAllProperties(t, w, Patm);
-    
-    // PERUBAHAN: Tambahkan property 'name'
-    const pt = { 
-        id: Date.now(), 
-        name: `Point ${State.points.length + 1}`, // Default Name
-        t, w, data 
-    };
-    
-    State.points.push(pt);
-    selectPoint(pt.id);
+  const Patm = parseFloat(document.getElementById('pressure').value);
+  const data = calculateAllProperties(t, w, Patm);
+
+  // PERUBAHAN: Tambahkan property 'name'
+  const pt = {
+    id: Date.now(),
+    name: `Point ${State.points.length + 1}`, // Default Name
+    t, w, data
+  };
+
+  State.points.push(pt);
+  selectPoint(pt.id);
 }
 
 function selectPoint(id) { State.selectedPointId = id; State.selectedZoneId = null; updateLists(); drawChart(); }
@@ -369,53 +409,53 @@ function deleteZone(e, id) { e.stopPropagation(); State.zones = State.zones.filt
 // --- UNIFIED EDIT MODAL ---
 
 function openEditModal(type, id) {
-    // Stop propagasi agar tidak men-trigger select item di background
-    if(window.event) window.event.stopPropagation(); 
+  // Stop propagasi agar tidak men-trigger select item di background
+  if (window.event) window.event.stopPropagation();
 
-    document.getElementById('editId').value = id;
-    document.getElementById('editType').value = type;
-    
-    const colorContainer = document.getElementById('colorContainer');
-    const nameInput = document.getElementById('editName');
-    const colorInput = document.getElementById('editColor');
-    
-    if (type === 'point') {
-        const p = State.points.find(item => item.id === id);
-        if(!p) return;
-        document.getElementById('editModalTitle').innerText = "Edit Point";
-        nameInput.value = p.name;
-        colorContainer.style.display = 'none'; // Point tidak punya setting warna (ikut default merah)
-    } 
-    else if (type === 'zone') {
-        const z = State.zones.find(item => item.id === id);
-        if(!z) return;
-        document.getElementById('editModalTitle').innerText = "Edit Zone";
-        nameInput.value = z.name;
-        colorInput.value = z.color;
-        colorContainer.style.display = 'block';
-    }
+  document.getElementById('editId').value = id;
+  document.getElementById('editType').value = type;
 
-    document.getElementById('editModal').style.display = 'flex';
+  const colorContainer = document.getElementById('colorContainer');
+  const nameInput = document.getElementById('editName');
+  const colorInput = document.getElementById('editColor');
+
+  if (type === 'point') {
+    const p = State.points.find(item => item.id === id);
+    if (!p) return;
+    document.getElementById('editModalTitle').innerText = "Edit Point";
+    nameInput.value = p.name;
+    colorContainer.style.display = 'none'; // Point tidak punya setting warna (ikut default merah)
+  }
+  else if (type === 'zone') {
+    const z = State.zones.find(item => item.id === id);
+    if (!z) return;
+    document.getElementById('editModalTitle').innerText = "Edit Zone";
+    nameInput.value = z.name;
+    colorInput.value = z.color;
+    colorContainer.style.display = 'block';
+  }
+
+  document.getElementById('editModal').style.display = 'flex';
 }
 
 function saveSettings() {
-    const id = parseInt(document.getElementById('editId').value);
-    const type = document.getElementById('editType').value;
-    const newName = document.getElementById('editName').value;
-    
-    if (type === 'point') {
-        const p = State.points.find(item => item.id === id);
-        if(p) p.name = newName;
-    } 
-    else if (type === 'zone') {
-        const newColor = document.getElementById('editColor').value;
-        const z = State.zones.find(item => item.id === id);
-        if(z) { z.name = newName; z.color = newColor; }
-    }
-    
-    updateLists(); 
-    drawChart(); 
-    closeModal('editModal');
+  const id = parseInt(document.getElementById('editId').value);
+  const type = document.getElementById('editType').value;
+  const newName = document.getElementById('editName').value;
+
+  if (type === 'point') {
+    const p = State.points.find(item => item.id === id);
+    if (p) p.name = newName;
+  }
+  else if (type === 'zone') {
+    const newColor = document.getElementById('editColor').value;
+    const z = State.zones.find(item => item.id === id);
+    if (z) { z.name = newName; z.color = newColor; }
+  }
+
+  updateLists();
+  drawChart();
+  closeModal('editModal');
 }
 
 function finishZone() {
@@ -448,6 +488,7 @@ function finishZone() {
   // Update counter text manual jadi 0
   if (document.getElementById('zonePtCount')) document.getElementById('zonePtCount').innerText = "0 pts";
 }
+
 function cancelZone() {
   State.tempZone = [];
   State.rangePreview = [];
@@ -457,11 +498,13 @@ function cancelZone() {
   drawChart();
   if (document.getElementById('zonePtCount')) document.getElementById('zonePtCount').innerText = "0 pts";
 }
+
 function clearAllData() { if (confirm("Clear all?")) { State.points = []; State.zones = []; State.tempZone = []; updateLists(); drawChart(); updateZonePtCount(); } }
 
 // ==========================================
 // 3. CHART RENDERING
 // ==========================================
+
 const margin = {
   top: 35,
   right: 60,
@@ -563,32 +606,41 @@ function drawChart() {
     State.tempZone.forEach(p => zoneLayer.append("circle").attr("cx", x(p.t)).attr("cy", y(p.w)).attr("r", 4).attr("fill", "#2196f3"));
   }
 
-  // 2. Range Slider Mode (SISI MELENGKUNG)
+  // 2. Range Slider Mode
   if (State.rangePreview.length > 0) {
-    // A. Gambar Polygon (Bentuk melengkung halus menggunakan banyak titik)
+    // Gambar Polygon
     const polyStr = State.rangePreview.map(p => [x(p.t), y(p.w)].join(",")).join(" ");
     zoneLayer.append("polygon").attr("points", polyStr).attr("class", "temp-zone-poly");
 
-    // B. Gambar Titik Sudut (Hanya 4 Sudut Utama)
-    // Kita hitung ulang posisi 4 sudut berdasarkan input slider saat ini
+    // Gambar 4 Sudut Utama (Clamped)
     const rTmin = parseFloat(document.getElementById('rangeTmin').value);
     const rTmax = parseFloat(document.getElementById('rangeTmax').value);
-    const rRHmin = parseFloat(document.getElementById('rangeRHmin').value);
-    const rRHmax = parseFloat(document.getElementById('rangeRHmax').value);
+    const rType = document.getElementById('rangeParamType').value;
+    const rPmin = parseFloat(document.getElementById('rangeP2min').value);
+    const rPmax = parseFloat(document.getElementById('rangeP2max').value);
 
-    // Hitung 4 Pojok
+    // Helper Clamping lokal untuk drawChart
+    const solveClamped = (t, val) => {
+      const res = Psychro.solveRobust('Tdb', t, rType, val, Patm);
+      const Pws = Psychro.getSatVapPres(t);
+      const Wmax = Psychro.getWFromPw(Pws, Patm);
+      if (res.w > Wmax) res.w = Wmax;
+      return res;
+    };
+
     const corners = [
-      Psychro.solveRobust('Tdb', rTmin, 'RH', rRHmin, Patm), // Kiri Bawah
-      Psychro.solveRobust('Tdb', rTmax, 'RH', rRHmin, Patm), // Kanan Bawah
-      Psychro.solveRobust('Tdb', rTmax, 'RH', rRHmax, Patm), // Kanan Atas
-      Psychro.solveRobust('Tdb', rTmin, 'RH', rRHmax, Patm)  // Kiri Atas
+      solveClamped(rTmin, rPmin), // Kiri Bawah
+      solveClamped(rTmax, rPmin), // Kanan Bawah
+      solveClamped(rTmax, rPmax), // Kanan Atas
+      solveClamped(rTmin, rPmax)  // Kiri Atas
     ];
 
-    // Render hanya 4 titik ini
     corners.forEach(p => {
-      zoneLayer.append("circle")
-        .attr("cx", x(p.t)).attr("cy", y(p.w))
-        .attr("r", 4).attr("fill", "#2196f3").attr("stroke", "white").attr("stroke-width", 1);
+      if (!isNaN(p.w)) {
+        zoneLayer.append("circle")
+          .attr("cx", x(p.t)).attr("cy", y(p.w))
+          .attr("r", 4).attr("fill", "#2196f3").attr("stroke", "white").attr("stroke-width", 1);
+      }
     });
   }
 
@@ -648,6 +700,7 @@ function handleMouseMove(e, x, y, minT, maxT, maxH, Patm) {
   panel.style.left = left + "px";
   panel.style.top = top + "px";
 }
+
 function handleChartClick(e, x, y, minT, maxT, maxH, Patm) {
   const [mx, my] = d3.pointer(e, svg.node());
   const t = x.invert(mx), w = y.invert(my);
