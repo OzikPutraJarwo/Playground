@@ -1,4 +1,21 @@
 // ==========================================
+// GLOBAL VARIABLES
+// ==========================================
+
+const 
+  chart_margin_top = 35,
+  chart_margin_right = 60,
+  chart_margin_bottom = 60,
+  chart_margin_left = 70,
+  min_tdb = -100,
+  max_tdb = 99,
+  color_rh = "#ef5350",
+  color_h = "#8e24aa",
+  color_twb = "#43a047",
+  color_v = "#fb8c00",
+  color_sat = "#0056b3";
+
+// ==========================================
 // 1. STATE & MATH ENGINE (FINAL FIX)
 // ==========================================
 
@@ -14,7 +31,7 @@ const State = {
 };
 
 const Psychro = {
-  R_DA: 287.058,
+  R_DA: 287.058, // Gas constant for dry air (J/kg·K)
 
   // Core Formulas
   getSatVapPres: t => 610.94 * Math.exp((17.625 * t) / (t + 243.04)),
@@ -39,29 +56,46 @@ const Psychro = {
     return Twb;
   },
 
-  // --- SOLVER YANG SUDAH DIPERBAIKI ---
-  solveRobust: (type1, val1, type2, val2, Patm) => {
-    // 1. CEK TRIVIAL (Langsung Return jika Tdb & W sudah ada)
-    // Ini memperbaiki bug dimana Tdb=30, W=0.01 malah lari ke 100
-    if (type1 === 'Tdb' && type2 === 'W') return { t: val1, w: val2 };
-    if (type1 === 'W' && type2 === 'Tdb') return { t: val2, w: val1 };
+  // --- TAMBAHKAN FUNGSI INI ---
+  // Mencari Tdb pada Volume (v) dan Humidity Ratio (W) tertentu
+  // Rumus: T = (v * P) / (R_da * (1 + 1.6078 * W)) - 273.15
+  getTdbFromVolLine: (v, W, Patm) => {
+    return ((v * Patm) / (287.058 * (1 + 1.6078 * W))) - 273.15;
+  },
 
-    // 2. Normalisasi: Usahakan Tdb di pos 1. Jika tidak ada Tdb, usahakan W di pos 1.
-    if (type2 === 'Tdb') { [type1, type2] = [type2, type1];[val1, val2] = [val2, val1]; }
-    else if (type2 === 'W' && type1 !== 'Tdb') { [type1, type2] = [type2, type1];[val1, val2] = [val2, val1]; }
+  // --- SOLVER MANUAL INPUT (FIXED for Volume) ---
+  solveRobust: (type1, val1, type2, val2, Patm) => {
+    // 1. Normalisasi: Pastikan Tdb atau W ada di parameter 1
+    if (type2 === 'Tdb' || type2 === 'W') {
+      [type1, type2] = [type2, type1];
+      [val1, val2] = [val2, val1];
+    }
 
     // KASUS A: Dry Bulb (Tdb) diketahui
     if (type1 === 'Tdb') {
       const t = val1;
 
-      // Tdb + RH
+      // 1. Tdb + W (Langsung)
+      if (type2 === 'W') return { t, w: val2 };
+
+      // 2. Tdb + RH
       if (type2 === 'RH') {
         const Pws = Psychro.getSatVapPres(t);
         const w = Psychro.getWFromPw(Pws * (val2 / 100), Patm);
         return { t, w };
       }
 
-      // Iterasi W untuk parameter lain (h, Twb)
+      // 3. Tdb + Volume (v) -> RUMUS LANGSUNG (BARU)
+      // Rumus: v = R_da * T_k * (1 + 1.6078 * W) / P
+      // Diubah menjadi: W = [ (v * P) / (R_da * T_k) - 1 ] / 1.6078
+      if (type2 === 'v') {
+        const Tk = t + 273.15;
+        const numerator = (val2 * Patm) / (Psychro.R_DA * Tk) - 1;
+        const w = numerator / 1.6078;
+        return { t, w };
+      }
+
+      // 4. Iterasi W untuk parameter lain (h, Twb)
       let wLow = 0, wHigh = 0.15, wMid = 0;
       for (let i = 0; i < 40; i++) {
         wMid = (wLow + wHigh) / 2;
@@ -77,23 +111,25 @@ const Psychro = {
     // KASUS B: Humidity Ratio (W) diketahui
     if (type1 === 'W') {
       const w = val1;
-      // Iterasi Tdb
       let tLow = -50, tHigh = 100, tMid = 0;
+
+      // Iterasi Tdb
       for (let i = 0; i < 40; i++) {
         tMid = (tLow + tHigh) / 2;
         let calc = 0;
+
         if (type2 === 'RH') {
           const Pws = Psychro.getSatVapPres(tMid);
           const Pw = Psychro.getPwFromW(w, Patm);
           calc = (Pw / Pws) * 100;
-          // RH turun saat T naik
-          if (calc < val2) tHigh = tMid; else tLow = tMid;
+          if (calc < val2) tHigh = tMid; else tLow = tMid; // Inverse
           continue;
         }
         else if (type2 === 'h') calc = Psychro.getEnthalpy(tMid, w);
         else if (type2 === 'Twb') calc = Psychro.getTwbFromState(tMid, w, Patm);
+        else if (type2 === 'v') calc = Psychro.getSpecificVolume(tMid, w, Patm);
 
-        // h dan Twb naik saat T naik
+        // h, Twb, dan v naik saat T naik
         if (calc > val2) tHigh = tMid; else tLow = tMid;
       }
       return { t: tMid, w };
@@ -103,23 +139,34 @@ const Psychro = {
     let tLow = -20, tHigh = 100, tMid = 0;
     for (let i = 0; i < 50; i++) {
       tMid = (tLow + tHigh) / 2;
+
       let wL = 0, wH = 0.15, wM = 0;
-      // Sub-solver W
       for (let j = 0; j < 15; j++) {
         wM = (wL + wH) / 2;
-        let v1Calc = (type1 === 'h') ? Psychro.getEnthalpy(tMid, wM) : Psychro.getTwbFromState(tMid, wM, Patm);
+        let v1Calc = 0;
+        // Hitung v1Calc berdasarkan jenis parameter 1
+        if (type1 === 'h') v1Calc = Psychro.getEnthalpy(tMid, wM);
+        else if (type1 === 'Twb') v1Calc = Psychro.getTwbFromState(tMid, wM, Patm);
+        else if (type1 === 'v') v1Calc = Psychro.getSpecificVolume(tMid, wM, Patm); // Tambahan support v
+
         if (v1Calc > val1) wH = wM; else wL = wM;
       }
       let wGuess = wM;
-      // Check P2 (RH)
+
       let v2Calc = 0;
       if (type2 === 'RH') {
         const Pws = Psychro.getSatVapPres(tMid);
         const Pw = Psychro.getPwFromW(wGuess, Patm);
         v2Calc = (Pw / Pws) * 100;
+      } else if (type2 === 'v') {
+        v2Calc = Psychro.getSpecificVolume(tMid, wGuess, Patm);
       }
-      if (type2 === 'RH') { if (v2Calc < val2) tHigh = tMid; else tLow = tMid; }
-      else { if (v2Calc > val2) tHigh = tMid; else tLow = tMid; }
+
+      if (type2 === 'RH') {
+        if (v2Calc < val2) tHigh = tMid; else tLow = tMid;
+      } else {
+        if (v2Calc > val2) tHigh = tMid; else tLow = tMid;
+      }
     }
     return { t: tMid, w: 0.010 };
   },
@@ -506,10 +553,10 @@ function clearAllData() { if (confirm("Clear all?")) { State.points = []; State.
 // ==========================================
 
 const margin = {
-  top: 35,
-  right: 60,
-  bottom: 60,
-  left: 70
+  top: chart_margin_top,
+  right: chart_margin_right,
+  bottom: chart_margin_bottom,
+  left: chart_margin_left
 };
 const chartWrapper = document.getElementById("chart-wrapper");
 const svgContainer = d3.select("#chart-container").append("svg").attr("width", "100%").attr("height", "100%");
@@ -530,8 +577,26 @@ function drawChart() {
 
   d3.select("#chart-clip rect").attr("width", w).attr("height", h);
 
+  const minTInput = document.getElementById('minTemp');
+  if (parseFloat(minTInput.value) < min_tdb) {
+    minTInput.value = min_tdb;
+  }
+
+  const maxTInput = document.getElementById('maxTemp');
+  if (parseFloat(maxTInput.value) > max_tdb) {
+    maxTInput.value = max_tdb;
+  }
+
+  if (parseFloat(minTInput.value) >= parseFloat(maxTInput.value)) {
+    minTInput.value = parseFloat(maxTInput.value) - 1;
+  }
+  if (parseFloat(maxTInput.value) <= parseFloat(minTInput.value)) {
+    maxTInput.value = parseFloat(minTInput.value) + 1;
+  }
+
+  // Ambil nilai setelah divalidasi
   const minT = parseFloat(document.getElementById('minTemp').value);
-  const maxT = parseFloat(document.getElementById('maxTemp').value);
+  const maxT = parseFloat(maxTInput.value);
   const maxH = parseFloat(document.getElementById('maxHum').value);
   const Patm = parseFloat(document.getElementById('pressure').value);
 
@@ -557,28 +622,59 @@ function drawChart() {
     .attr("x", -h / 2)
     .attr("y", -45)
     .text("Humidity Ratio (kg/kg)");
-  // Relative Humidity (red)
-  axesLayer.append("text")
-    .attr("x", h / 2).attr("y", -w - 35)
-    .attr("transform", "rotate(90)")
-    .attr("text-anchor", "end")
-    .attr("class", "label-text rh-text")
-    .text("Relative Humidity (%)");
-  // Enthalpy (purple)
-  axesLayer.append("text")
-    .attr("x", 0).attr("y", -w - 35)
-    .attr("transform", "rotate(90)")
-    .style("text-anchor", "start")
-    .attr("text-anchor", "end")
-    .attr("class", "label-text h-text")
-    .text("Enthalpy (kJ/kg)");
-  // Wet Bulb Temp (green)
-  axesLayer.append("text")
-    .attr("x", h).attr("y", -w - 35)
-    .attr("transform", "rotate(90)")
-    .attr("text-anchor", "end")
-    .attr("class", "label-text wb-text")
-    .text("Wet Bulb Temp (°C)");
+  // // Relative Humidity (red)
+  // axesLayer.append("text")
+  //   .attr("x", h / 2).attr("y", -w - 35)
+  //   .attr("transform", "rotate(90)")
+  //   .attr("text-anchor", "end")
+  //   .attr("class", "label-text rh-text")
+  //   .text("Relative Humidity (%)");
+  // // Enthalpy (purple)
+  // axesLayer.append("text")
+  //   .attr("x", 0).attr("y", -w - 35)
+  //   .attr("transform", "rotate(90)")
+  //   .style("text-anchor", "start")
+  //   .attr("text-anchor", "end")
+  //   .attr("class", "label-text h-text")
+  //   .text("Enthalpy (kJ/kg)");
+  // // Wet Bulb Temp (green)
+  // axesLayer.append("text")
+  //   .attr("x", h).attr("y", -w - 35)
+  //   .attr("transform", "rotate(90)")
+  //   .attr("text-anchor", "end")
+  //   .attr("class", "label-text wb-text")
+  //   .text("Wet Bulb Temp (°C)");
+  // // Specific Volume (yellow)
+  // axesLayer.append("text")
+  //   .attr("class", "axis-label")
+  //   .attr("x", w)
+  //   .attr("y", h + 45)
+  //   .attr("text-anchor", "end")
+  //   .attr("class", "label-text v-text")
+  //   .text("Specific Volume (m³/kg)");
+
+  // ================= MULAI SISIPAN LEGEND =================
+  const legG = axesLayer.append("g").attr("transform", `translate(10, 10)`);
+
+  // Gambar Kotak Background
+  legG.append("rect").attr("class", "legend-box").attr("width", 110).attr("height", 85).attr("rx", 3);
+
+  // Data Item Legend
+  const legItems = [
+    { c: color_rh, t: "Rel. Humidity", d: "0" },
+    { c: color_h, t: "Enthalpy", d: "0" },
+    { c: color_twb, t: "Wet Bulb Temp", d: "4" },
+    { c: color_v, t: "Spec. Volume", d: "0" },
+    { c: color_sat, t: "Saturation", d: "0", w: 2.5 }
+  ];
+
+  // Render Item Legend
+  legItems.forEach((item, i) => {
+    const ly = 15 + (i * 15);
+    legG.append("line").attr("x1", 10).attr("x2", 30).attr("y1", ly).attr("y2", ly)
+      .attr("stroke", item.c).attr("stroke-width", item.w || 1.5).attr("stroke-dasharray", item.d);
+    legG.append("text").attr("class", "legend-text").attr("x", 35).attr("y", ly + 4).text(item.t);
+  });
 
   // PSYCHRO LINES & LABELS
   linesLayer.selectAll("*").remove(); labelLayer.selectAll("*").remove();
@@ -658,6 +754,8 @@ function drawChart() {
   overlay.on("mousemove", (e) => handleMouseMove(e, x, y, minT, maxT, maxH, Patm))
     .on("mouseout", () => document.getElementById("info-panel").style.display = "none")
     .on("click", (e) => handleChartClick(e, x, y, minT, maxT, maxH, Patm));
+
+
 }
 
 function handleMouseMove(e, x, y, minT, maxT, maxH, Patm) {
@@ -752,7 +850,7 @@ function generateHTMLGrid(d) {
             <span class="det-label">Specific Volume</span>
             <span class="det-abbr">v</span>
             <span>:</span>
-            <span class="det-val">${d.v.toFixed(3)} m³/kg</span>
+            <span class="det-val">${d.v.toFixed(3)} c</span>
         </div>
         <div class="detail-row">
             <span class="det-label">Density</span>
@@ -798,15 +896,38 @@ function drawPsychroLines(linesG, labelsG, x, y, width, height, minT, maxT, maxH
   const addLabel = (pos, text, cls, loc) => { labels[loc].push({ pos, text, class: cls }); };
 
   // 1. VOL
-  for (let v = 0.75; v <= 1.05; v += 0.01) {
+  for (let v = 0.75; v <= 1.11; v += 0.01) {
     const ts = Psychro.solveIntersectionWithSaturation('volume', v, Patm, minT, maxT);
-    const te = ((v * Patm) / 287.058) - 273.15;
+    const te = ((v * Patm) / 287.058) - 273.15; // T saat W=0
+
     const d = [{ t: ts, w: Psychro.getWFromPw(Psychro.getSatVapPres(ts), Patm) }];
-    for (let t = Math.ceil(ts); t < te && t <= maxT; t += 2) d.push({ t: t, w: Psychro.getWFromVolLine(t, v, Patm) });
-    d.push({ t: te, w: 0 }); linesG.append("path").datum(d).attr("class", "v-line").attr("d", line);
+    for (let t = Math.ceil(ts); t < te && t <= maxT; t += 2) {
+      d.push({ t: t, w: Psychro.getWFromVolLine(t, v, Patm) });
+    }
+    d.push({ t: te, w: 0 });
+    linesG.append("path").datum(d).attr("class", "v-line").attr("d", line);
+
+    // --- LABEL LOGIC (BARU) ---
+    // Label setiap 0.05 m3/kg (0.80, 0.85, dst) agar rapi
+    if (Math.round(v * 100) % 5 === 0) {
+      const labelText = v.toFixed(2);
+
+      // Cek Tabrakan Bawah (Sumbu X)
+      if (te >= minT && te <= maxT) {
+        addLabel(x(te), labelText, "lbl-v", "bottom");
+      }
+      else {
+        // Cek Tabrakan Atas (Max Hum Ratio)
+        // Jika garis volume miring ke kiri atas
+        const tAtMaxH = Psychro.getTdbFromVolLine(v, maxH, Patm);
+        if (tAtMaxH >= minT && tAtMaxH <= maxT) {
+          addLabel(x(tAtMaxH), labelText, "lbl-v", "top");
+        }
+      }
+    }
   }
   // 2. ENTH
-  for (let h = -20; h <= 250; h += 5) {
+  for (let h = -20; h <= 180; h += 5) {
     const ts = Psychro.solveIntersectionWithSaturation('enthalpy', h, Patm, minT, maxT);
     const te = h / 1.006;
     const d = [{ t: ts, w: Psychro.getWFromPw(Psychro.getSatVapPres(ts), Patm) }];

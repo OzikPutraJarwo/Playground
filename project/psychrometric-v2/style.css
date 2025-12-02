@@ -247,7 +247,8 @@ input:focus {
 
 .detail-row {
   display: grid;
-  grid-template-columns: 40px 8px 1fr;;
+  grid-template-columns: 40px 8px 1fr;
+  ;
 }
 
 .det-label {
@@ -350,6 +351,10 @@ input:focus {
 
 .wb-text {
   fill: #43a047;
+}
+
+.v-text {
+  fill: #fb8c00;
 }
 
 /* User Interaction */
@@ -485,6 +490,10 @@ input[type="color"] {
   fill: #2e7d32;
 }
 
+.lbl-v {
+  fill: #fb8c00;
+}
+
 /* Styling Preview Range Box */
 .temp-zone-poly {
   fill: rgba(33, 150, 243, 0.2);
@@ -492,4 +501,18 @@ input[type="color"] {
   stroke-width: 2;
   stroke-dasharray: 4, 2;
   pointer-events: none;
+}
+
+/* LEGEND STYLES */
+.legend-box { 
+    fill: rgba(255, 255, 255, 0.9); 
+    stroke: #cfd8dc; 
+    stroke-width: 1px; 
+}
+.legend-text { 
+    font-size: 10px; 
+    font-family: 'Segoe UI', sans-serif; 
+    fill: #546e7a; 
+    font-weight: 600; 
+    pointer-events: none;
 }
