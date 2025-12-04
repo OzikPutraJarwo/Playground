@@ -1,0 +1,9 @@
+Update selanjutnya:
+- ATM pressure dengan 2 tipe pilihan, input manual atau menyesuaikan tekanan ketinggian dengan pressure yang sudah ditentukan
+- Show/hide garis tertentu pada chart
+- Download chart sebagai gambar dan data sebagai CSV
+- Penambahan kombinasi parameter untuk penentuan titik
+- Garis bantuan untuk cursor point
+
+Perbaikan bug:
+- ATM pressure mengubah bentuk chart, jadi harus redraw ulang chart terutama untuk garis-garis yang perhitungannya sudah ditentukan min-max nya

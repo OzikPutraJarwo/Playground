@@ -504,15 +504,16 @@ input[type="color"] {
 }
 
 /* LEGEND STYLES */
-.legend-box { 
-    fill: rgba(255, 255, 255, 0.9); 
-    stroke: #cfd8dc; 
-    stroke-width: 1px; 
+.legend-box {
+  fill: rgba(255, 255, 255, 0.9);
+  stroke: #cfd8dc;
+  stroke-width: 1px;
 }
-.legend-text { 
-    font-size: 10px; 
-    font-family: 'Segoe UI', sans-serif; 
-    fill: #546e7a; 
-    font-weight: 600; 
-    pointer-events: none;
+
+.legend-text {
+  font-size: 10px;
+  font-family: 'Segoe UI', sans-serif;
+  fill: #546e7a;
+  font-weight: 600;
+  pointer-events: none;
 }

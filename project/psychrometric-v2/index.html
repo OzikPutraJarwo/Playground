@@ -1,258 +1,258 @@
 <!DOCTYPE html>
 <html lang="id">
 
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Psychrometric Suite Pro v5.1</title>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <link rel="stylesheet" href="./style.css">
-  </head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Psychrometric Suite Pro v5.1</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <link rel="stylesheet" href="./style.css">
+</head>
 
-  <body>
+<body>
 
-    <div class="main-container">
-      <div class="controls-section">
-        <div class="controls-scroll">
-          <h3>Chart Settings</h3>
-          <div class="input-group"><label>Atm Pressure (Pa)</label><input type="number" id="pressure" value="101325"
+  <div class="main-container">
+    <div class="controls-section">
+      <div class="controls-scroll">
+        <h3>Chart Settings</h3>
+        <div class="input-group"><label>Atm Pressure (Pa)</label><input type="number" id="pressure" value="101325"
+            oninput="drawChart()" step="100"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div class="input-group"><label>Min Temp</label><input type="number" id="minTemp" value="-10"
               oninput="drawChart()"></div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-            <div class="input-group"><label>Min Temp</label><input type="number" id="minTemp" value="-10"
-                oninput="drawChart()"></div>
-            <div class="input-group"><label>Max Temp</label><input type="number" id="maxTemp" value="50"
-                oninput="drawChart()"></div>
+          <div class="input-group"><label>Max Temp</label><input type="number" id="maxTemp" value="50"
+              oninput="drawChart()"></div>
+        </div>
+        <div class="input-group"><label>Max Hum Ratio</label><input type="number" id="maxHum" value="0.030" step="0.005"
+            oninput="drawChart()"></div>
+
+        <div class="toolbar">
+          <button class="tool-btn active full-width" id="btn-view" onclick="setMode('view')"><span>👁 View
+              / Explore</span></button>
+          <button class="tool-btn" id="btn-point" onclick="setMode('point')"><span>📍 Click to Add
+              Point</span></button>
+          <button class="tool-btn" onclick="openManualModal('point')"><span>⌨ Manual Point</span></button>
+          <button class="tool-btn" id="btn-zone" onclick="setMode('zone')"><span>📐 Draw
+              Zone</span></button>
+          <button class="tool-btn" onclick="openManualModal('zone')"><span>⌨ Manual Zone
+              Pt</span></button>
+        </div>
+
+        <div id="zone-controls">
+          <div class="zone-tabs"
+            style="display:flex; gap:5px; margin-bottom:10px; border-bottom:1px solid #bbdefb; padding-bottom:5px;">
+            <div class="z-tab active" id="tab-manual" onclick="setZoneSubMode('manual')"
+              style="flex:1; padding:4px; font-size:10px; text-align:center; cursor:pointer; border-radius:3px; background:#2196f3; color:white;">
+              Manual (Click)</div>
+            <div class="z-tab" id="tab-range" onclick="setZoneSubMode('range')"
+              style="flex:1; padding:4px; font-size:10px; text-align:center; cursor:pointer; border-radius:3px; background:rgba(255,255,255,0.5); color:#1565c0;">
+              Range (Sliders)</div>
           </div>
-          <div class="input-group"><label>Max Hum Ratio</label><input type="number" id="maxHum" value="0.030"
-              step="0.005" oninput="drawChart()"></div>
 
-          <div class="toolbar">
-            <button class="tool-btn active full-width" id="btn-view" onclick="setMode('view')"><span>👁 View
-                / Explore</span></button>
-            <button class="tool-btn" id="btn-point" onclick="setMode('point')"><span>📍 Click to Add
-                Point</span></button>
-            <button class="tool-btn" onclick="openManualModal('point')"><span>⌨ Manual Point</span></button>
-            <button class="tool-btn" id="btn-zone" onclick="setMode('zone')"><span>📐 Draw
-                Zone</span></button>
-            <button class="tool-btn" onclick="openManualModal('zone')"><span>⌨ Manual Zone
-                Pt</span></button>
+          <div id="zone-manual-ui">
+            <div
+              style="font-size:10px; margin-bottom:5px; font-weight:bold; color:#0277bd; display:flex; justify-content:space-between;">
+              <span>DRAWING...</span>
+              <span id="zonePtCount">0 pts</span>
+            </div>
+            <button class="tool-btn full-width" onclick="openManualModal('zone')" style="margin-bottom:5px;">⌨ Add
+              Vertex Value</button>
           </div>
 
-          <div id="zone-controls">
-            <div class="zone-tabs"
-              style="display:flex; gap:5px; margin-bottom:10px; border-bottom:1px solid #bbdefb; padding-bottom:5px;">
-              <div class="z-tab active" id="tab-manual" onclick="setZoneSubMode('manual')"
-                style="flex:1; padding:4px; font-size:10px; text-align:center; cursor:pointer; border-radius:3px; background:#2196f3; color:white;">
-                Manual (Click)</div>
-              <div class="z-tab" id="tab-range" onclick="setZoneSubMode('range')"
-                style="flex:1; padding:4px; font-size:10px; text-align:center; cursor:pointer; border-radius:3px; background:rgba(255,255,255,0.5); color:#1565c0;">
-                Range (Sliders)</div>
+          <div id="zone-range-ui" style="display:none;">
+
+            <label>Range 1: Dry Bulb (°C)</label>
+            <div class="range-row" style="display:flex; align-items:center; gap:5px; margin-bottom:10px;">
+              <input type="number" class="range-val" id="rangeTmin" value="20" oninput="updateRangeZone()"
+                style="width:40px; text-align:center; font-size:10px;">
+              <input type="range" class="range-slider" id="sliderTmin" min="0" max="60" value="20"
+                oninput="syncRange('Tmin')" style="flex:1; height:4px;">
+              <input type="range" class="range-slider" id="sliderTmax" min="0" max="60" value="30"
+                oninput="syncRange('Tmax')" style="flex:1; height:4px;">
+              <input type="number" class="range-val" id="rangeTmax" value="30" oninput="updateRangeZone()"
+                style="width:40px; text-align:center; font-size:10px;">
             </div>
 
-            <div id="zone-manual-ui">
-              <div
-                style="font-size:10px; margin-bottom:5px; font-weight:bold; color:#0277bd; display:flex; justify-content:space-between;">
-                <span>DRAWING...</span>
-                <span id="zonePtCount">0 pts</span>
-              </div>
-              <button class="tool-btn full-width" onclick="openManualModal('zone')" style="margin-bottom:5px;">⌨ Add
-                Vertex Value</button>
+            <div style="display:flex; justify-content:space-between; align-items:end; margin-bottom:3px;">
+              <label>Range 2 Parameter:</label>
+              <select id="rangeParamType" onchange="setupRangeDefaults()"
+                style="width:110px; padding:2px; font-size:10px;">
+                <option value="RH">Rel. Humidity (%)</option>
+                <option value="Twb">Wet Bulb (°C)</option>
+                <option value="h">Enthalpy (kJ/kg)</option>
+                <option value="v">Spec. Volume (m³/kg)</option>
+              </select>
             </div>
 
-            <div id="zone-range-ui" style="display:none;">
-
-              <label>Range 1: Dry Bulb (°C)</label>
-              <div class="range-row" style="display:flex; align-items:center; gap:5px; margin-bottom:10px;">
-                <input type="number" class="range-val" id="rangeTmin" value="20" oninput="updateRangeZone()"
-                  style="width:40px; text-align:center; font-size:10px;">
-                <input type="range" class="range-slider" id="sliderTmin" min="0" max="60" value="20"
-                  oninput="syncRange('Tmin')" style="flex:1; height:4px;">
-                <input type="range" class="range-slider" id="sliderTmax" min="0" max="60" value="30"
-                  oninput="syncRange('Tmax')" style="flex:1; height:4px;">
-                <input type="number" class="range-val" id="rangeTmax" value="30" oninput="updateRangeZone()"
-                  style="width:40px; text-align:center; font-size:10px;">
-              </div>
-
-              <div style="display:flex; justify-content:space-between; align-items:end; margin-bottom:3px;">
-                <label>Range 2 Parameter:</label>
-                <select id="rangeParamType" onchange="setupRangeDefaults()"
-                  style="width:110px; padding:2px; font-size:10px;">
-                  <option value="RH">Rel. Humidity (%)</option>
-                  <option value="Twb">Wet Bulb (°C)</option>
-                  <option value="h">Enthalpy (kJ/kg)</option>
-                  <option value="v">Spec. Volume (m³/kg)</option>
-                </select>
-              </div>
-
-              <div class="range-row" style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
-                <input type="number" class="range-val" id="rangeP2min" step="0.1" oninput="updateRangeZone()"
-                  style="width:40px; text-align:center; font-size:10px;">
-                <input type="range" class="range-slider" id="sliderP2min" oninput="syncRange('P2min')"
-                  style="flex:1; height:4px;">
-                <input type="range" class="range-slider" id="sliderP2max" oninput="syncRange('P2max')"
-                  style="flex:1; height:4px;">
-                <input type="number" class="range-val" id="rangeP2max" step="0.1" oninput="updateRangeZone()"
-                  style="width:40px; text-align:center; font-size:10px;">
-              </div>
-            </div>
-
-            <div style="margin-top:10px; display:flex; gap:5px;">
-              <button class="tool-btn btn-primary" style="flex:1" onclick="finishZone()">Finish Zone</button>
-              <button class="tool-btn btn-danger" style="flex:1" onclick="cancelZone()">Cancel</button>
+            <div class="range-row" style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
+              <input type="number" class="range-val" id="rangeP2min" step="0.1" oninput="updateRangeZone()"
+                style="width:40px; text-align:center; font-size:10px;">
+              <input type="range" class="range-slider" id="sliderP2min" oninput="syncRange('P2min')"
+                style="flex:1; height:4px;">
+              <input type="range" class="range-slider" id="sliderP2max" oninput="syncRange('P2max')"
+                style="flex:1; height:4px;">
+              <input type="number" class="range-val" id="rangeP2max" step="0.1" oninput="updateRangeZone()"
+                style="width:40px; text-align:center; font-size:10px;">
             </div>
           </div>
 
-          <div class="section-title">MARKED POINTS <span class="count-badge" id="count-points">0</span></div>
-          <div id="list-points"></div>
-
-          <div class="section-title">COMFORT ZONES <span class="count-badge" id="count-zones">0</span></div>
-          <div id="list-zones"></div>
-
-          <button class="tool-btn btn-danger full-width" onclick="clearAllData()" style="margin-top:20px;">🗑
-            Clear All Data</button>
-        </div>
-      </div>
-
-      <div class="chart-section">
-        <div id="chart-wrapper">
-          <div id="chart-container"></div>
-          <div id="info-panel">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:3px 15px;" id="tooltip-grid"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-overlay" id="manualModal">
-      <div class="modal-box">
-        <div class="modal-header">
-          <span id="modalTitle">Add Manual Point</span>
-          <span onclick="closeModal('manualModal')" style="cursor:pointer">✕</span>
-        </div>
-
-        <div style="margin-bottom:10px; font-size:11px; color:#666;">
-          Select two parameters to define the state point.
-        </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
-          <div>
-            <label>Parameter 1</label>
-            <select id="p1Type" style="margin-bottom:5px;">
-              <option value="Tdb">Dry Bulb Temp (°C)</option>
-              <option value="Twb">Wet Bulb Temp (°C)</option>
-              <option value="RH">Rel. Humidity (%)</option>
-              <option value="W">Humidity Ratio (kg/kg)</option>
-              <option value="h">Enthalpy (kJ/kg)</option>
-            </select>
-            <input type="number" id="p1Val" step="0.1" placeholder="Value">
-          </div>
-
-          <div>
-            <label>Parameter 2</label>
-            <select id="p2Type" style="margin-bottom:5px;">
-              <option value="RH" selected>Rel. Humidity (%)</option>
-              <option value="Tdb">Dry Bulb Temp (°C)</option>
-              <option value="Twb">Wet Bulb Temp (°C)</option>
-              <option value="W">Humidity Ratio (kg/kg)</option>
-              <option value="h">Enthalpy (kJ/kg)</option>
-            </select>
-            <input type="number" id="p2Val" step="0.1" placeholder="Value">
+          <div style="margin-top:10px; display:flex; gap:5px;">
+            <button class="tool-btn btn-primary" style="flex:1" onclick="finishZone()">Finish Zone</button>
+            <button class="tool-btn btn-danger" style="flex:1" onclick="cancelZone()">Cancel</button>
           </div>
         </div>
 
-        <div class="modal-footer">
-          <button class="tool-btn" onclick="closeModal('manualModal')">Cancel</button>
-          <button class="tool-btn btn-primary" onclick="submitManualInput()">Add</button>
-        </div>
+        <div class="section-title">MARKED POINTS <span class="count-badge" id="count-points">0</span></div>
+        <div id="list-points"></div>
+
+        <div class="section-title">COMFORT ZONES <span class="count-badge" id="count-zones">0</span></div>
+        <div id="list-zones"></div>
+
+        <button class="tool-btn btn-danger full-width" onclick="clearAllData()" style="margin-top:20px;">🗑
+          Clear All Data</button>
       </div>
     </div>
 
-    <div class="modal-overlay" id="manualModal">
-      <div class="modal-box">
-        <div class="modal-header">
-          <span id="modalTitle">Add Manual Point</span>
-          <span onclick="closeModal('manualModal')" style="cursor:pointer">✕</span>
-        </div>
-
-        <div style="margin-bottom:10px; font-size:11px; color:#666;">
-          Select two parameters to calculate the state.
-        </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
-          <div>
-            <label>Parameter 1</label>
-            <select id="p1Type" style="margin-bottom:5px;">
-              <option value="Tdb">Dry Bulb (°C)</option>
-              <option value="Twb">Wet Bulb (°C)</option>
-              <option value="RH">Rel. Humidity (%)</option>
-              <option value="W">Hum. Ratio (kg/kg)</option>
-              <option value="h">Enthalpy (kJ/kg)</option>
-            </select>
-            <input type="number" id="p1Val" step="0.1" placeholder="Value">
-          </div>
-
-          <div>
-            <label>Parameter 2</label>
-            <select id="p2Type" style="margin-bottom:5px;">
-              <option value="RH" selected>Rel. Humidity (%)</option>
-              <option value="Tdb">Dry Bulb (°C)</option>
-              <option value="Twb">Wet Bulb (°C)</option>
-              <option value="W">Hum. Ratio (kg/kg)</option>
-              <option value="h">Enthalpy (kJ/kg)</option>
-            </select>
-            <input type="number" id="p2Val" step="0.1" placeholder="Value">
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button class="tool-btn" onclick="closeModal('manualModal')">Cancel</button>
-          <button class="tool-btn btn-primary" onclick="submitManualInput()">Add</button>
+    <div class="chart-section">
+      <div id="chart-wrapper">
+        <div id="chart-container"></div>
+        <div id="info-panel">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:3px 15px;" id="tooltip-grid"></div>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="modal-overlay" id="zoneModal">
-      <div class="modal-box">
-        <div class="modal-header">Edit Zone Settings <span onclick="closeModal('zoneModal')"
-            style="cursor:pointer">✕</span></div>
-        <input type="hidden" id="editZoneId">
+  <div class="modal-overlay" id="manualModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span id="modalTitle">Add Manual Point</span>
+        <span onclick="closeModal('manualModal')" style="cursor:pointer">✕</span>
+      </div>
 
-        <label>Zone Name</label>
-        <input type="text" id="zoneNameInput" style="margin-bottom:15px;">
+      <div style="margin-bottom:10px; font-size:11px; color:#666;">
+        Select two parameters to define the state point.
+      </div>
 
-        <label>Zone Color</label>
-        <input type="color" id="zoneColorInput" style="margin-bottom:15px;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+        <div>
+          <label>Parameter 1</label>
+          <select id="p1Type" style="margin-bottom:5px;">
+            <option value="Tdb">Dry Bulb Temp (°C)</option>
+            <option value="Twb">Wet Bulb Temp (°C)</option>
+            <option value="RH">Rel. Humidity (%)</option>
+            <option value="W">Humidity Ratio (kg/kg)</option>
+            <option value="h">Enthalpy (kJ/kg)</option>
+          </select>
+          <input type="number" id="p1Val" step="0.1" placeholder="Value">
+        </div>
 
-        <div class="modal-footer">
-          <button class="tool-btn" onclick="closeModal('zoneModal')">Cancel</button>
-          <button class="tool-btn btn-primary" onclick="saveZoneSettings()">Save Changes</button>
+        <div>
+          <label>Parameter 2</label>
+          <select id="p2Type" style="margin-bottom:5px;">
+            <option value="RH" selected>Rel. Humidity (%)</option>
+            <option value="Tdb">Dry Bulb Temp (°C)</option>
+            <option value="Twb">Wet Bulb Temp (°C)</option>
+            <option value="W">Humidity Ratio (kg/kg)</option>
+            <option value="h">Enthalpy (kJ/kg)</option>
+          </select>
+          <input type="number" id="p2Val" step="0.1" placeholder="Value">
         </div>
       </div>
-    </div>
 
-    <div class="modal-overlay" id="editModal">
-      <div class="modal-box">
-        <div style="font-weight:bold; margin-bottom:10px;">
-          <span id="editModalTitle">Edit Item</span>
-          <span onclick="closeModal('editModal')" style="float:right;cursor:pointer">✕</span>
-        </div>
-
-        <input type="hidden" id="editId">
-        <input type="hidden" id="editType">
-
-        <label>Name</label>
-        <input type="text" id="editName" style="margin-bottom:10px;">
-
-        <div id="colorContainer">
-          <label>Color</label>
-          <input type="color" id="editColor" style="margin-bottom:15px; width:100%; height:30px;">
-        </div>
-
-        <button class="tool-btn btn-primary full-width" onclick="saveSettings()">Save Changes</button>
+      <div class="modal-footer">
+        <button class="tool-btn" onclick="closeModal('manualModal')">Cancel</button>
+        <button class="tool-btn btn-primary" onclick="submitManualInput()">Add</button>
       </div>
     </div>
+  </div>
 
-    <script src="./script.js"></script>
-  </body>
+  <div class="modal-overlay" id="manualModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span id="modalTitle">Add Manual Point</span>
+        <span onclick="closeModal('manualModal')" style="cursor:pointer">✕</span>
+      </div>
+
+      <div style="margin-bottom:10px; font-size:11px; color:#666;">
+        Select two parameters to calculate the state.
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+        <div>
+          <label>Parameter 1</label>
+          <select id="p1Type" style="margin-bottom:5px;">
+            <option value="Tdb">Dry Bulb (°C)</option>
+            <option value="Twb">Wet Bulb (°C)</option>
+            <option value="RH">Rel. Humidity (%)</option>
+            <option value="W">Hum. Ratio (kg/kg)</option>
+            <option value="h">Enthalpy (kJ/kg)</option>
+          </select>
+          <input type="number" id="p1Val" step="0.1" placeholder="Value">
+        </div>
+
+        <div>
+          <label>Parameter 2</label>
+          <select id="p2Type" style="margin-bottom:5px;">
+            <option value="RH" selected>Rel. Humidity (%)</option>
+            <option value="Tdb">Dry Bulb (°C)</option>
+            <option value="Twb">Wet Bulb (°C)</option>
+            <option value="W">Hum. Ratio (kg/kg)</option>
+            <option value="h">Enthalpy (kJ/kg)</option>
+          </select>
+          <input type="number" id="p2Val" step="0.1" placeholder="Value">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="tool-btn" onclick="closeModal('manualModal')">Cancel</button>
+        <button class="tool-btn btn-primary" onclick="submitManualInput()">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="zoneModal">
+    <div class="modal-box">
+      <div class="modal-header">Edit Zone Settings <span onclick="closeModal('zoneModal')"
+          style="cursor:pointer">✕</span></div>
+      <input type="hidden" id="editZoneId">
+
+      <label>Zone Name</label>
+      <input type="text" id="zoneNameInput" style="margin-bottom:15px;">
+
+      <label>Zone Color</label>
+      <input type="color" id="zoneColorInput" style="margin-bottom:15px;">
+
+      <div class="modal-footer">
+        <button class="tool-btn" onclick="closeModal('zoneModal')">Cancel</button>
+        <button class="tool-btn btn-primary" onclick="saveZoneSettings()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+      <div style="font-weight:bold; margin-bottom:10px;">
+        <span id="editModalTitle">Edit Item</span>
+        <span onclick="closeModal('editModal')" style="float:right;cursor:pointer">✕</span>
+      </div>
+
+      <input type="hidden" id="editId">
+      <input type="hidden" id="editType">
+
+      <label>Name</label>
+      <input type="text" id="editName" style="margin-bottom:10px;">
+
+      <div id="colorContainer">
+        <label>Color</label>
+        <input type="color" id="editColor" style="margin-bottom:15px; width:100%; height:30px;">
+      </div>
+
+      <button class="tool-btn btn-primary full-width" onclick="saveSettings()">Save Changes</button>
+    </div>
+  </div>
+
+  <script src="./script.js"></script>
+</body>
 
 </html>
